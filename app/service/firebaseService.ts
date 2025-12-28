@@ -24,28 +24,20 @@ import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { getAuthErrorMessage } from './firebaseErrors';
 import { Alert } from 'react-native';
 
-const notesCollection = collection(FIRESTORE_DB, 'todos');
+const notesCollection = collection(FIRESTORE_DB, 'notes');
 
 export const fetchNotes = async (userId: string): Promise<Note[]> => {
   try {
-    const notesRef = collection(FIRESTORE_DB, 'todos');
+    const notesRef = collection(FIRESTORE_DB, 'notes');
     const q = query(notesRef, where('userId', '==', userId));
     const querySnapshot = await getDocs(q);
     const notes: Note[] = querySnapshot.docs.map((docSnap) => {
       const data = docSnap.data() as any;
 
-      // Support both legacy 'todo' field and new 'note' field
-      const noteText: string =
-        typeof data.note === 'string'
-          ? data.note
-          : typeof data.todo === 'string'
-            ? data.todo
-            : '';
-
       return {
         id: docSnap.id,
         title: typeof data.title === 'string' ? data.title : undefined,
-        note: noteText,
+        note: typeof data.note === 'string' ? data.note : '',
         completed: Boolean(data.completed),
         createdAt: String(data.createdAt),
         category:
@@ -73,17 +65,17 @@ export const updateNote = async (
   id: string,
   updates: Partial<Pick<Note, 'title' | 'note'>>,
 ) => {
-  const editDoc = doc(FIRESTORE_DB, 'todos', id);
+  const editDoc = doc(FIRESTORE_DB, 'notes', id);
   await updateDoc(editDoc, updates);
 };
 
 export const toggleStatus = async (id: string, completed: boolean) => {
-  const editDoc = doc(FIRESTORE_DB, 'todos', id);
+  const editDoc = doc(FIRESTORE_DB, 'notes', id);
   await updateDoc(editDoc, { completed });
 };
 
 export const deleteNote = async (id: string) => {
-  const editDoc = doc(FIRESTORE_DB, 'todos', id);
+  const editDoc = doc(FIRESTORE_DB, 'notes', id);
   await deleteDoc(editDoc);
 };
 

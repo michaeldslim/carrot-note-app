@@ -13,7 +13,7 @@ import {
   StyleSheet,
   ScrollView,
 } from 'react-native';
-import { getAuth } from 'firebase/auth';
+import { FIREBASE_AUTH } from '../../../firebaseConfig';
 import {
   addCategories,
   fetchCategories,
@@ -26,7 +26,7 @@ export const CategoryManager = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editedCategoryText, setEditedCategoryText] = useState<string>('');
-  const userId = getAuth().currentUser?.uid;
+  const userId = FIREBASE_AUTH.currentUser?.uid;
 
   const loadCategories = useCallback(async () => {
     if (userId) {
@@ -54,7 +54,7 @@ export const CategoryManager = () => {
       return;
     }
     try {
-      const user = getAuth().currentUser;
+      const user = FIREBASE_AUTH.currentUser;
       if (user) {
         await addCategories(user.uid, newCategories);
         Alert.alert('Success', 'Categories added successfully');
@@ -95,7 +95,7 @@ export const CategoryManager = () => {
     }
 
     try {
-      const user = getAuth().currentUser;
+      const user = FIREBASE_AUTH.currentUser;
       if (user) {
         await updateCategory(user.uid, oldCategory, editedCategoryText.trim());
         const updatedCategories = categories
@@ -129,7 +129,7 @@ export const CategoryManager = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              const user = getAuth().currentUser;
+              const user = FIREBASE_AUTH.currentUser;
               if (user) {
                 await deleteCategory(user.uid, categoryToDelete);
                 const updatedCategories = categories.filter(
