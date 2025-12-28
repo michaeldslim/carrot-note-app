@@ -51,9 +51,12 @@ export const addTodo = async (todo: Omit<Todo, 'id'>) => {
   await addDoc(todosCollection, todo);
 };
 
-export const updateTodo = async (id: string, todo: string) => {
+export const updateTodo = async (
+  id: string,
+  updates: Partial<Pick<Todo, 'title' | 'todo'>>,
+) => {
   const editDoc = doc(FIRESTORE_DB, 'todos', id);
-  await updateDoc(editDoc, { todo });
+  await updateDoc(editDoc, updates);
 };
 
 export const toggleStatus = async (id: string, completed: boolean) => {

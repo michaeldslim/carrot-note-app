@@ -28,11 +28,15 @@ type TodoDetailProps = NativeStackScreenProps<RootStackList, 'Detail'>;
 const TodoDetail = ({ route, navigation }: TodoDetailProps) => {
   const { todoItem } = route.params;
 
+  const [editTitle, setEditTitle] = useState<string>(todoItem.title ?? '');
   const [editTodo, setEditTodo] = useState<string>(todoItem.todo);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
   const handleUpdateTodo = async () => {
-    await updateTodo(todoItem.id, editTodo);
+    await updateTodo(todoItem.id, {
+      title: editTitle.trim() || undefined,
+      todo: editTodo,
+    });
     navigation.goBack();
   };
 
@@ -61,7 +65,10 @@ const TodoDetail = ({ route, navigation }: TodoDetailProps) => {
     return completed ? 'Mark as Incomplete' : 'Mark as Complete';
   };
 
-  const isDisabled = editTodo === todoItem.todo;
+  const normalizedOriginalTitle = (todoItem.title ?? '').trim();
+  const normalizedCurrentTitle = editTitle.trim();
+  const isDisabled =
+    editTodo === todoItem.todo && normalizedCurrentTitle === normalizedOriginalTitle;
 
   const commonButtonStyles = [styles.button, styles.buttonText];
 
@@ -69,12 +76,22 @@ const TodoDetail = ({ route, navigation }: TodoDetailProps) => {
     <View style={styles.container}>
       <View style={styles.form}>
         <TextInput
+          style={styles.titleInput}
+          value={editTitle}
+          onChangeText={(text) => setEditTitle(text.trimStart())}
+          placeholder="Title"
+          maxLength={80}
+          multiline={false}
+        />
+        <TextInput
           style={styles.input}
           value={editTodo}
           onChangeText={(text) => setEditTodo(text.trimStart())}
-          placeholder="Edit note"
+          placeholder="Edit note (optional)"
           maxLength={200}
           multiline={true}
+          numberOfLines={3}
+          textAlignVertical="top"
         />
         <View style={styles.buttonContainer}>
           <NoteUpdateButton
@@ -142,6 +159,15 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
+  },
+  titleInput: {
+    fontSize: 16,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#cccccc',
+    borderRadius: 5,
+    width: '100%',
+    marginBottom: 10,
   },
   input: {
     fontSize: 16,

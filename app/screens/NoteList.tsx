@@ -41,6 +41,7 @@ type NoteListProps = NativeStackScreenProps<RootStackList, 'List'>;
 const NoteList = ({ navigation }: NoteListProps) => {
   const isFocused = useIsFocused();
   const [todo, setTodo] = useState<string>('');
+  const [title, setTitle] = useState<string>('');
   const [todos, setTodos] = useState<Todo[]>([]);
   const [filteredTodos, setFilteredTodos] = useState<Todo[]>([]);
   const [category, setCategory] = useState<string>('Select an option');
@@ -106,8 +107,9 @@ const NoteList = ({ navigation }: NoteListProps) => {
   };
 
   const handleAddTodo = async () => {
-    if (userId && todo.trim() && category) {
+    if (userId && title.trim() && category) {
       const todoItem: Omit<Todo, 'id'> = {
+        title: title.trim() || undefined,
         todo,
         completed: false,
         createdAt: new Date().toISOString(),
@@ -118,6 +120,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
       const todos = await fetchTodos(userId);
       setTodos(todos);
       setTodo('');
+      setTitle('');
       setCategory('Select an option');
     }
   };
@@ -178,26 +181,41 @@ const NoteList = ({ navigation }: NoteListProps) => {
             <TextInput
               style={
                 category !== 'Select an option'
+                  ? styles.titleInputActive
+                  : styles.titleInputInactive
+              }
+              placeholder={'Title'}
+              onChangeText={(text: string) => setTitle(text.trimStart())}
+              value={title}
+              maxLength={80}
+              multiline={false}
+              editable={category !== 'Select an option'}
+            />
+            <TextInput
+              style={
+                category !== 'Select an option'
                   ? styles.activeInput
                   : styles.inActiveInput
               }
-              placeholder={'Add new carrot note'}
+              placeholder={'Jot it down here (optional)'}
               onChangeText={(text: string) => setTodo(text.trimStart())}
               value={todo}
               maxLength={200}
               multiline={true}
+              numberOfLines={4}
+              textAlignVertical="top"
               editable={category !== 'Select an option'}
             />
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={[
                   styles.button,
-                  todo.trim().length < 3
+                  title.trim().length < 3
                     ? styles.disabledButton
                     : styles.addButton,
                 ]}
-                disabled={todo.trim().length < 3}
-                onPress={todo.trim().length >= 3 ? handleAddTodo : () => {}}
+                disabled={title.trim().length < 3}
+                onPress={title.trim().length >= 3 ? handleAddTodo : () => {}}
               >
                 <Text style={styles.addButtonText}>Add carrot note</Text>
               </TouchableOpacity>
@@ -306,8 +324,29 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     width: '100%',
     marginBottom: 10,
+    minHeight: 80,
   },
   inActiveInput: {
+    fontSize: 16,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#cccccc',
+    borderRadius: 5,
+    width: '100%',
+    marginBottom: 10,
+    minHeight: 80,
+  },
+  titleInputActive: {
+    fontSize: 16,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#2196f3',
+    backgroundColor: '#ffffff',
+    borderRadius: 5,
+    width: '100%',
+    marginBottom: 10,
+  },
+  titleInputInactive: {
     fontSize: 16,
     padding: 10,
     borderWidth: 1,

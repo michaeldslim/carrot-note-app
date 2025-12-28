@@ -116,6 +116,9 @@ const NoteItem: React.FC<NoteItemProps> = ({
     }
   };
 
+  const displayTitle =
+    todo.title && todo.title.trim().length > 0 ? todo.title : todo.todo;
+
   return (
     <Animated.View style={[styles.rowContainer, rTaskContainerStyle]}>
       <View style={styles.container}>
@@ -126,15 +129,15 @@ const NoteItem: React.FC<NoteItemProps> = ({
               onPress={onPress}
               activeOpacity={0.7}
             >
-              <Text 
+              <Text
                 style={[
                   styles.todoText,
-                  todo.completed ? styles.completed : styles.notCompleted
+                  todo.completed ? styles.completed : styles.notCompleted,
                 ]}
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {todo.todo}
+                {displayTitle}
               </Text>
             </TouchableOpacity>
           </Animated.View>
