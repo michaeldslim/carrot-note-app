@@ -14,8 +14,8 @@ import {
 } from 'react-native';
 import React, { useState } from 'react';
 import {
-  deleteTodo,
-  updateTodo,
+  deleteNote,
+  updateNote,
   toggleStatus,
 } from '../service/firebaseService';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -23,27 +23,27 @@ import { RootStackList } from '../navigation/RootNavigator';
 import { NoteUpdateButton } from '../components/noteUpdateButton';
 import { NoteActionButton } from '../components/noteActionButton';
 
-type TodoDetailProps = NativeStackScreenProps<RootStackList, 'Detail'>;
+type NoteDetailProps = NativeStackScreenProps<RootStackList, 'Detail'>;
 
-const TodoDetail = ({ route, navigation }: TodoDetailProps) => {
-  const { todoItem } = route.params;
+const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
+  const { noteItem } = route.params;
 
-  const [editTitle, setEditTitle] = useState<string>(todoItem.title ?? '');
-  const [editTodo, setEditTodo] = useState<string>(todoItem.todo);
+  const [editTitle, setEditTitle] = useState<string>(noteItem.title ?? '');
+  const [editNote, setEditNote] = useState<string>(noteItem.note);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
-  const handleUpdateTodo = async () => {
-    await updateTodo(todoItem.id, {
+  const handleUpdateNote = async () => {
+    await updateNote(noteItem.id, {
       title: editTitle.trim() || undefined,
-      todo: editTodo,
+      note: editNote,
     });
     navigation.goBack();
   };
 
-  const handleDeleteTodo = async () => {
-    if (!todoItem.id) return;
+  const handleDeleteNote = async () => {
+    if (!noteItem.id) return;
 
-    await deleteTodo(todoItem.id);
+    await deleteNote(noteItem.id);
     setIsModalVisible(false);
     navigation.goBack();
   };
@@ -57,7 +57,7 @@ const TodoDetail = ({ route, navigation }: TodoDetailProps) => {
   };
 
   const handleToggleStatus = async () => {
-    await toggleStatus(todoItem.id, !todoItem.completed);
+    await toggleStatus(noteItem.id, !noteItem.completed);
     navigation.goBack();
   };
 
@@ -65,10 +65,10 @@ const TodoDetail = ({ route, navigation }: TodoDetailProps) => {
     return completed ? 'Mark as Incomplete' : 'Mark as Complete';
   };
 
-  const normalizedOriginalTitle = (todoItem.title ?? '').trim();
+  const normalizedOriginalTitle = (noteItem.title ?? '').trim();
   const normalizedCurrentTitle = editTitle.trim();
   const isDisabled =
-    editTodo === todoItem.todo && normalizedCurrentTitle === normalizedOriginalTitle;
+    editNote === noteItem.note && normalizedCurrentTitle === normalizedOriginalTitle;
 
   const commonButtonStyles = [styles.button, styles.buttonText];
 
@@ -85,8 +85,8 @@ const TodoDetail = ({ route, navigation }: TodoDetailProps) => {
         />
         <TextInput
           style={styles.input}
-          value={editTodo}
-          onChangeText={(text) => setEditTodo(text.trimStart())}
+          value={editNote}
+          onChangeText={(text) => setEditNote(text.trimStart())}
           placeholder="Edit note (optional)"
           maxLength={200}
           multiline={true}
@@ -97,7 +97,7 @@ const TodoDetail = ({ route, navigation }: TodoDetailProps) => {
           <NoteUpdateButton
             disabled={isDisabled}
             styles={styles}
-            onPress={!isDisabled ? handleUpdateTodo : undefined}
+            onPress={!isDisabled ? handleUpdateNote : undefined}
             text="Update note"
           />
           <NoteActionButton
@@ -109,7 +109,7 @@ const TodoDetail = ({ route, navigation }: TodoDetailProps) => {
           <NoteActionButton
             styles={[...commonButtonStyles, styles.toggleButton]}
             onPress={handleToggleStatus}
-            text={getStatusText(todoItem.completed)}
+            text={getStatusText(noteItem.completed)}
             textStyles={[styles.buttonText]}
           />
         </View>
@@ -134,7 +134,7 @@ const TodoDetail = ({ route, navigation }: TodoDetailProps) => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.modalButtonDelete}
-                onPress={handleDeleteTodo}
+                onPress={handleDeleteNote}
               >
                 <Text style={styles.modalButtonText}>Delete</Text>
               </TouchableOpacity>
@@ -261,4 +261,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TodoDetail;
+export default NoteDetail;

@@ -23,9 +23,9 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackList } from '../navigation/RootNavigator';
 import { getAuthErrorMessage } from '../service/firebaseErrors';
 
-type TodoListProps = NativeStackScreenProps<RootStackList, 'Login'>;
+type NoteListProps = NativeStackScreenProps<RootStackList, 'Login'>;
 
-const Login: React.FC<TodoListProps> = ({ navigation }) => {
+const Login: React.FC<NoteListProps> = ({ navigation }) => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);

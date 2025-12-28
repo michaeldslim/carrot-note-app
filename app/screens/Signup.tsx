@@ -26,9 +26,9 @@ import {
 import { RootStackList } from '../navigation/RootNavigator';
 import { getAuthErrorMessage } from '../service/firebaseErrors';
 
-type TodoListProps = NativeStackScreenProps<RootStackList, 'Signup'>;
+type NoteListProps = NativeStackScreenProps<RootStackList, 'Signup'>;
 
-const Signup: React.FC<TodoListProps> = ({ navigation }) => {
+const Signup: React.FC<NoteListProps> = ({ navigation }) => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');

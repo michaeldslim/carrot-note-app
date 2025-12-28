@@ -21,13 +21,13 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  fetchTodos,
-  addTodo,
-  deleteTodo,
+  fetchNotes,
+  addNote,
+  deleteNote,
   fetchCategories,
   addCategories,
 } from '../service/firebaseService';
-import { Todo } from './types';
+import { Note } from './types';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackList } from '../navigation/RootNavigator';
 import { useIsFocused } from '@react-navigation/native';
@@ -40,10 +40,10 @@ type NoteListProps = NativeStackScreenProps<RootStackList, 'List'>;
 
 const NoteList = ({ navigation }: NoteListProps) => {
   const isFocused = useIsFocused();
-  const [todo, setTodo] = useState<string>('');
+  const [noteText, setNoteText] = useState<string>('');
   const [title, setTitle] = useState<string>('');
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [filteredTodos, setFilteredTodos] = useState<Todo[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
   const [category, setCategory] = useState<string>('Select an option');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -51,24 +51,24 @@ const NoteList = ({ navigation }: NoteListProps) => {
   const auth = FIREBASE_AUTH;
   const userId = auth.currentUser?.uid;
 
-  const filterTodos = useCallback(() => {
+  const filterNotes = useCallback(() => {
     if (selectedCategory === 'All') {
-      setFilteredTodos(todos);
+      setFilteredNotes(notes);
     } else {
-      setFilteredTodos(
-        todos.filter((todo) => todo.category === selectedCategory),
+      setFilteredNotes(
+        notes.filter((note) => note.category === selectedCategory),
       );
     }
-  }, [todos, selectedCategory]);
+  }, [notes, selectedCategory]);
 
   useEffect(() => {
-    const loadTodos = async () => {
+    const loadNotes = async () => {
       if (userId) {
-        const todos = await fetchTodos(userId);
-        setTodos(todos);
+        const fetchedNotes = await fetchNotes(userId);
+        setNotes(fetchedNotes);
       }
     };
-    loadTodos().then();
+    loadNotes().then();
   }, [userId, isFocused]);
 
   useEffect(() => {
@@ -96,41 +96,41 @@ const NoteList = ({ navigation }: NoteListProps) => {
   }, [userId, isFocused]);
 
   useEffect(() => {
-    filterTodos();
-  }, [todos, selectedCategory, filterTodos]);
+    filterNotes();
+  }, [notes, selectedCategory, filterNotes]);
 
-  const getTotalTodosByCategory = (category: string) => {
+  const getTotalNotesByCategory = (category: string) => {
     if (category === 'All') {
-      return todos.length;
+      return notes.length;
     }
-    return todos.filter((todo) => todo.category === category).length;
+    return notes.filter((note) => note.category === category).length;
   };
 
-  const handleAddTodo = async () => {
+  const handleAddNote = async () => {
     if (userId && title.trim() && category) {
-      const todoItem: Omit<Todo, 'id'> = {
+      const noteItem: Omit<Note, 'id'> = {
         title: title.trim() || undefined,
-        todo,
+        note: noteText,
         completed: false,
         createdAt: new Date().toISOString(),
         category,
         userId: userId,
       };
-      await addTodo(todoItem);
-      const todos = await fetchTodos(userId);
-      setTodos(todos);
-      setTodo('');
+      await addNote(noteItem);
+      const fetchedNotes = await fetchNotes(userId);
+      setNotes(fetchedNotes);
+      setNoteText('');
       setTitle('');
       setCategory('Select an option');
     }
   };
 
-  const confirmDelete = async (todoId: string) => {
-    if (!todoId) return;
+  const confirmDelete = async (noteId: string) => {
+    if (!noteId) return;
     if (userId) {
-      await deleteTodo(todoId);
-      const todos = await fetchTodos(userId);
-      setTodos(todos);
+      await deleteNote(noteId);
+      const fetchedNotes = await fetchNotes(userId);
+      setNotes(fetchedNotes);
     }
   };
 
@@ -138,8 +138,8 @@ const NoteList = ({ navigation }: NoteListProps) => {
     if (!userId) return;
     setRefreshing(true);
     try {
-      const todos = await fetchTodos(userId);
-      setTodos(todos);
+      const fetchedNotes = await fetchNotes(userId);
+      setNotes(fetchedNotes);
     } catch (error) {
       console.error('Error refreshing notes:', error);
     } finally {
@@ -198,8 +198,8 @@ const NoteList = ({ navigation }: NoteListProps) => {
                   : styles.inActiveInput
               }
               placeholder={'Jot it down here (optional)'}
-              onChangeText={(text: string) => setTodo(text.trimStart())}
-              value={todo}
+              onChangeText={(text: string) => setNoteText(text.trimStart())}
+              value={noteText}
               maxLength={200}
               multiline={true}
               numberOfLines={4}
@@ -215,7 +215,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
                     : styles.addButton,
                 ]}
                 disabled={title.trim().length < 3}
-                onPress={title.trim().length >= 3 ? handleAddTodo : () => {}}
+                onPress={title.trim().length >= 3 ? handleAddNote : () => {}}
               >
                 <Text style={styles.addButtonText}>Add carrot note</Text>
               </TouchableOpacity>
@@ -243,7 +243,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
                           styles.filterButtonTextSelected,
                       ]}
                     >
-                      {category} ({getTotalTodosByCategory(category)})
+                      {category} ({getTotalNotesByCategory(category)})
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -252,16 +252,16 @@ const NoteList = ({ navigation }: NoteListProps) => {
           </View>
           <View style={styles.listContainer}>
             <FlatList
-              data={filteredTodos}
+              data={filteredNotes}
               keyExtractor={(item) => item.id}
               refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
               }
               renderItem={({ item }) => (
                 <NoteItem
-                  todo={item}
+                  note={item}
                   onPress={() =>
-                    navigation.navigate('Detail', { todoItem: item })
+                    navigation.navigate('Detail', { noteItem: item })
                   }
                   confirmDelete={confirmDelete}
                 />

@@ -69,7 +69,7 @@ module.exports = defaultConfig;
 ```
 
 ### Note List Component
-- Define a component (TodoList.tsx) that will handle displaying the list of notes.
+- Define a component (NoteList.tsx) that will handle displaying the list of notes.
 - Manage the state of note items and input for new notes.
 - Use Firestore to fetch, add, update, and delete note items.
 - Render the list of items with options to toggle their completion status and delete them.

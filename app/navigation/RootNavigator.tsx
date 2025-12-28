@@ -9,7 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import NoteList from '../screens/NoteList';
 import Loading from '../screens/Loading';
 import NoteDetail from '../screens/NoteDetail';
-import { Todo } from '../screens/types';
+import { Note } from '../screens/types';
 import Login from '../screens/Login';
 import Signup from '../screens/Signup';
 import Settings from '../screens/Settings';
@@ -18,7 +18,7 @@ import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 export type RootStackList = {
   Loading: undefined;
   List: undefined;
-  Detail: { todoItem: Todo };
+  Detail: { noteItem: Note };
   Login: undefined;
   Signup: undefined;
   Logout: undefined;

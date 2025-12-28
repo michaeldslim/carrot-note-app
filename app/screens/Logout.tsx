@@ -11,10 +11,10 @@ import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackList } from '../navigation/RootNavigator';
 
-type TodoLogoutProps = NativeStackNavigationProp<RootStackList, 'List'>;
+type NoteLogoutProps = NativeStackNavigationProp<RootStackList, 'List'>;
 
 const Logout: React.FC = () => {
-  const navigation = useNavigation<TodoLogoutProps>();
+  const navigation = useNavigation<NoteLogoutProps>();
   const auth = FIREBASE_AUTH;
 
   const handleLogout = async () => {

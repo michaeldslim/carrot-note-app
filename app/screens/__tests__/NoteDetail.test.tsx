@@ -5,12 +5,12 @@
 */
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import TodoDetail from '../NoteDetail';
+import NoteDetail from '../NoteDetail';
 import * as firebaseService from '../../service/firebaseService';
 
 jest.mock('../../service/firebaseService', () => ({
-  updateTodo: jest.fn().mockResolvedValue(undefined),
-  deleteTodo: jest.fn().mockResolvedValue(undefined),
+  updateNote: jest.fn().mockResolvedValue(undefined),
+  deleteNote: jest.fn().mockResolvedValue(undefined),
   toggleStatus: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -18,9 +18,10 @@ const createProps = () => {
   return {
     route: {
       params: {
-        todoItem: {
+        noteItem: {
           id: '1',
-          todo: 'Test todo',
+          title: '',
+          note: 'Test note',
           completed: false,
         },
       },
@@ -31,26 +32,26 @@ const createProps = () => {
   } as any;
 };
 
-describe('TodoDetail screen', () => {
+describe('NoteDetail screen', () => {
   it('renders input and action buttons', () => {
     const props = createProps();
     const { getByPlaceholderText, getByText } = render(
-      <TodoDetail {...props} />,
+      <NoteDetail {...props} />,
     );
 
-    expect(getByPlaceholderText('Edit note')).toBeTruthy();
+    expect(getByPlaceholderText('Edit note (optional)')).toBeTruthy();
     expect(getByText('Update note')).toBeTruthy();
     expect(getByText('Delete note')).toBeTruthy();
     expect(getByText('Mark as Complete')).toBeTruthy();
   });
 
-  it('calls updateTodo and navigates back when Update note is pressed', async () => {
+  it('calls updateNote and navigates back when Update note is pressed', async () => {
     const props = createProps();
     const { getByText, getByPlaceholderText } = render(
-      <TodoDetail {...props} />,
+      <NoteDetail {...props} />,
     );
 
-    const input = getByPlaceholderText('Edit note');
+    const input = getByPlaceholderText('Edit note (optional)');
     const updatedText = 'Updated note';
 
     fireEvent.changeText(input, updatedText);
@@ -59,7 +60,10 @@ describe('TodoDetail screen', () => {
     fireEvent.press(updateButton);
 
     await waitFor(() => {
-      expect(firebaseService.updateTodo).toHaveBeenCalledWith('1', updatedText);
+      expect(firebaseService.updateNote).toHaveBeenCalledWith('1', {
+        title: undefined,
+        note: updatedText,
+      });
       expect(props.navigation.goBack).toHaveBeenCalled();
     });
   });

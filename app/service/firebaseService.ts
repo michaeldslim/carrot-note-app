@@ -14,7 +14,7 @@ import {
   query,
   where,
 } from 'firebase/firestore';
-import { Todo } from '../screens/types';
+import { Note } from '../screens/types';
 import {
   updatePassword,
   EmailAuthProvider,
@@ -24,36 +24,54 @@ import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { getAuthErrorMessage } from './firebaseErrors';
 import { Alert } from 'react-native';
 
-const todosCollection = collection(FIRESTORE_DB, 'todos');
+const notesCollection = collection(FIRESTORE_DB, 'todos');
 
-export const fetchTodos = async (userId: string): Promise<Todo[]> => {
+export const fetchNotes = async (userId: string): Promise<Note[]> => {
   try {
-    const todosRef = collection(FIRESTORE_DB, 'todos');
-    const q = query(todosRef, where('userId', '==', userId));
+    const notesRef = collection(FIRESTORE_DB, 'todos');
+    const q = query(notesRef, where('userId', '==', userId));
     const querySnapshot = await getDocs(q);
-    const todos = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Todo[];
+    const notes: Note[] = querySnapshot.docs.map((docSnap) => {
+      const data = docSnap.data() as any;
+
+      // Support both legacy 'todo' field and new 'note' field
+      const noteText: string =
+        typeof data.note === 'string'
+          ? data.note
+          : typeof data.todo === 'string'
+            ? data.todo
+            : '';
+
+      return {
+        id: docSnap.id,
+        title: typeof data.title === 'string' ? data.title : undefined,
+        note: noteText,
+        completed: Boolean(data.completed),
+        createdAt: String(data.createdAt),
+        category:
+          typeof data.category === 'string' ? (data.category as string) : undefined,
+        userId: typeof data.userId === 'string' ? (data.userId as string) : undefined,
+      };
+    });
 
     // Sort by createdAt in descending order (newest first)
-    return todos.sort(
+    return notes.sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   } catch (error) {
-    console.error('Error fetching todos:', error);
+    console.error('Error fetching notes:', error);
     return [];
   }
 };
 
-export const addTodo = async (todo: Omit<Todo, 'id'>) => {
-  await addDoc(todosCollection, todo);
+export const addNote = async (note: Omit<Note, 'id'>) => {
+  await addDoc(notesCollection, note);
 };
 
-export const updateTodo = async (
+export const updateNote = async (
   id: string,
-  updates: Partial<Pick<Todo, 'title' | 'todo'>>,
+  updates: Partial<Pick<Note, 'title' | 'note'>>,
 ) => {
   const editDoc = doc(FIRESTORE_DB, 'todos', id);
   await updateDoc(editDoc, updates);
@@ -64,7 +82,7 @@ export const toggleStatus = async (id: string, completed: boolean) => {
   await updateDoc(editDoc, { completed });
 };
 
-export const deleteTodo = async (id: string) => {
+export const deleteNote = async (id: string) => {
   const editDoc = doc(FIRESTORE_DB, 'todos', id);
   await deleteDoc(editDoc);
 };

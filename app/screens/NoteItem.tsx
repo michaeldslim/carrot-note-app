@@ -5,7 +5,7 @@
 */
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Alert } from 'react-native';
-import { Todo } from './types';
+import { Note } from './types';
 import { IconButton } from 'react-native-paper';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -19,13 +19,13 @@ const SWIPE_THRESHOLD = -65;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface NoteItemProps {
-  todo: Todo;
+  note: Note;
   onPress: () => void;
-  confirmDelete: (todoId: string) => void;
+  confirmDelete: (noteId: string) => void;
 }
 
 const NoteItem: React.FC<NoteItemProps> = ({
-  todo,
+  note,
   onPress,
   confirmDelete,
 }) => {
@@ -36,8 +36,8 @@ const NoteItem: React.FC<NoteItemProps> = ({
   const gesture = Gesture.Pan()
     .activeOffsetX([-10, 10]) // Only activate gesture when horizontal movement exceeds 10 pixels
     .onChange((event) => {
-      // Only allow swipe for completed todos
-      if (!todo.completed) {
+      // Only allow swipe for completed notes
+      if (!note.completed) {
         translateX.value = 0;
         return;
       }
@@ -51,7 +51,7 @@ const NoteItem: React.FC<NoteItemProps> = ({
     })
     .onEnd(() => {
       // If not completed, ensure it stays in place
-      if (!todo.completed) {
+      if (!note.completed) {
         translateX.value = 0;
         return;
       }
@@ -70,7 +70,7 @@ const NoteItem: React.FC<NoteItemProps> = ({
     translateX.value = withSpring(-SCREEN_WIDTH);
     itemHeight.value = withSpring(0);
     setIsSwipeOpen(false);
-    confirmDelete(todo.id);
+    confirmDelete(note.id);
   };
 
   const rStyle = useAnimatedStyle(() => ({
@@ -102,7 +102,7 @@ const NoteItem: React.FC<NoteItemProps> = ({
   const isOlderThan3Days = () => {
     try {
       const now = new Date();
-      const createdDate = new Date(todo.createdAt);
+      const createdDate = new Date(note.createdAt);
       const daysDifference =
         (now.getTime() - createdDate.getTime()) / (1000 * 3600 * 24);
       return daysDifference > 3;
@@ -117,7 +117,7 @@ const NoteItem: React.FC<NoteItemProps> = ({
   };
 
   const displayTitle =
-    todo.title && todo.title.trim().length > 0 ? todo.title : todo.todo;
+    note.title && note.title.trim().length > 0 ? note.title : note.note;
 
   return (
     <Animated.View style={[styles.rowContainer, rTaskContainerStyle]}>
@@ -125,14 +125,14 @@ const NoteItem: React.FC<NoteItemProps> = ({
         <GestureDetector gesture={gesture}>
           <Animated.View style={[styles.swipeableContent, rStyle]}>
             <TouchableOpacity 
-              style={[styles.innerContainer, isOlderThan3Days() && styles.oldTodo]}
+              style={[styles.innerContainer, isOlderThan3Days() && styles.oldNote]}
               onPress={onPress}
               activeOpacity={0.7}
             >
               <Text
                 style={[
-                  styles.todoText,
-                  todo.completed ? styles.completed : styles.notCompleted,
+                  styles.noteText,
+                  note.completed ? styles.completed : styles.notCompleted,
                 ]}
                 numberOfLines={1}
                 ellipsizeMode="tail"
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     minHeight: 65,
   },
-  todoText: {
+  noteText: {
     flex: 1,
     fontSize: 17,
     textAlignVertical: 'center',
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  oldTodo: {
+  oldNote: {
     backgroundColor: '#dca470',
   },
 });

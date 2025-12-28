@@ -3,10 +3,10 @@
  This software is free to use, modify, and share under 
  the terms of the GNU General Public License v3.
 */
-export interface Todo {
+export interface Note {
   id: string;
   title?: string;
-  todo: string;
+  note: string;
   completed: boolean;
   createdAt: string;
   category?: string;
