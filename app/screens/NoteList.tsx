@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useState, useCallback } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   fetchNotes,
   addNote,
@@ -43,6 +44,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
   const isFocused = useIsFocused();
   const [noteText, setNoteText] = useState<string>('');
   const [title, setTitle] = useState<string>('');
+  const [showDetails, setShowDetails] = useState<boolean>(false);
   const [notes, setNotes] = useState<Note[]>([]);
   const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
   const [category, setCategory] = useState<string>('Select an option');
@@ -125,6 +127,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
         setNotes(fetchedNotes);
         setNoteText('');
         setTitle('');
+        setShowDetails(false);
         setCategory('Select an option');
       } catch (error) {
         if (error instanceof Error) {
@@ -168,10 +171,6 @@ const NoteList = ({ navigation }: NoteListProps) => {
     >
       <SafeAreaView style={styles.safeArea}>
         <GestureHandlerRootView style={styles.container}>
-          <View style={styles.screenTitleWrap}>
-            <Text style={styles.screenTitle}>Your notes</Text>
-            <Text style={styles.screenSubtitle}>Capture quickly, organize clearly</Text>
-          </View>
           <View style={styles.inputSection}>
             <View style={styles.formCard}>
             {Platform.OS === 'ios' ? (
@@ -210,22 +209,52 @@ const NoteList = ({ navigation }: NoteListProps) => {
               editable={category !== 'Select an option'}
               placeholderTextColor={ui.colors.textMuted}
             />
-            <TextInput
-              style={
-                category !== 'Select an option'
-                  ? styles.activeInput
-                  : styles.inActiveInput
-              }
-              placeholder={'Details (optional)'}
-              onChangeText={(text: string) => setNoteText(text.trimStart())}
-              value={noteText}
-              maxLength={200}
-              multiline={true}
-              numberOfLines={4}
-              textAlignVertical="top"
-              editable={category !== 'Select an option'}
-              placeholderTextColor={ui.colors.textMuted}
-            />
+            <TouchableOpacity
+              style={styles.detailsToggle}
+              disabled={category === 'Select an option'}
+              onPress={() => {
+                setShowDetails((prev) => {
+                  if (prev) {
+                    setNoteText('');
+                  }
+                  return !prev;
+                });
+              }}
+            >
+              <View style={styles.detailsToggleContent}>
+                <MaterialCommunityIcons
+                  name={showDetails ? 'chevron-up-circle' : 'chevron-down-circle'}
+                  size={16}
+                  color={ui.colors.danger}
+                />
+                <Text
+                  style={[
+                    styles.detailsToggleText,
+                    category === 'Select an option' && styles.detailsToggleTextDisabled,
+                  ]}
+                >
+                  {showDetails ? 'Hide details' : 'Add details'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            {showDetails ? (
+              <TextInput
+                style={
+                  category !== 'Select an option'
+                    ? styles.activeInput
+                    : styles.inActiveInput
+                }
+                placeholder={'Details (optional)'}
+                onChangeText={(text: string) => setNoteText(text.trimStart())}
+                value={noteText}
+                maxLength={200}
+                multiline={true}
+                numberOfLines={3}
+                textAlignVertical="top"
+                editable={category !== 'Select an option'}
+                placeholderTextColor={ui.colors.textMuted}
+              />
+            ) : null}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={[
@@ -242,6 +271,9 @@ const NoteList = ({ navigation }: NoteListProps) => {
                 </Text>
               </TouchableOpacity>
             </View>
+            </View>
+          </View>
+          <View style={styles.stickyFilterContainer}>
             <Text style={styles.helperText}>
               Tip: swipe left on completed notes to delete quickly.
             </Text>
@@ -273,7 +305,6 @@ const NoteList = ({ navigation }: NoteListProps) => {
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-            </View>
             </View>
           </View>
           <View style={styles.listContainer}>
@@ -326,21 +357,8 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 14,
   },
-  screenTitleWrap: {
-    paddingTop: 8,
-    marginBottom: 8,
-  },
-  screenTitle: {
-    ...ui.typography.title,
-    color: ui.colors.textPrimary,
-    fontSize: 30,
-  },
-  screenSubtitle: {
-    ...ui.typography.subtitle,
-    color: ui.colors.textSecondary,
-  },
   inputSection: {
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   formCard: {
     backgroundColor: ui.colors.surface,
@@ -352,7 +370,11 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     flex: 1,
-    marginTop: 8,
+    marginTop: 4,
+  },
+  stickyFilterContainer: {
+    paddingBottom: 4,
+    backgroundColor: ui.colors.background,
   },
   flatList: {
     flex: 1,
@@ -381,7 +403,7 @@ const styles = StyleSheet.create({
     borderRadius: ui.radius.md,
     width: '100%',
     marginBottom: ui.spacing.md,
-    minHeight: 80,
+    minHeight: 64,
     color: ui.colors.textPrimary,
   },
   inActiveInput: {
@@ -392,7 +414,7 @@ const styles = StyleSheet.create({
     borderRadius: ui.radius.md,
     width: '100%',
     marginBottom: ui.spacing.md,
-    minHeight: 80,
+    minHeight: 64,
     backgroundColor: ui.colors.surfaceSoft,
     color: ui.colors.textMuted,
   },
@@ -420,6 +442,7 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     width: '100%',
+    marginTop: 2,
   },
   button: {
     alignItems: 'center',
@@ -530,7 +553,24 @@ const styles = StyleSheet.create({
     ...ui.typography.body,
     color: ui.colors.textMuted,
     marginTop: 2,
-    marginBottom: ui.spacing.md,
+    marginBottom: ui.spacing.xs,
+  },
+  detailsToggle: {
+    paddingVertical: 6,
+    marginBottom: ui.spacing.sm,
+  },
+  detailsToggleContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  detailsToggleText: {
+    fontSize: 13,
+    color: ui.colors.primaryDark,
+    fontWeight: '600',
+  },
+  detailsToggleTextDisabled: {
+    color: ui.colors.textMuted,
   },
   emptyState: {
     backgroundColor: ui.colors.surface,
