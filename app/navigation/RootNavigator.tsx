@@ -6,6 +6,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import React from 'react';
 import NoteList from '../screens/NoteList';
 import Loading from '../screens/Loading';
 import NoteDetail from '../screens/NoteDetail';
@@ -14,6 +15,7 @@ import Login from '../screens/Login';
 import Signup from '../screens/Signup';
 import Settings from '../screens/Settings';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { ui } from '../theme/ui';
 
 export type RootStackList = {
   Loading: undefined;
@@ -40,6 +42,18 @@ const RootNavigator = () => {
         <Stack.Navigator
           screenOptions={{
             headerBackTitleVisible: false,
+            headerStyle: {
+              backgroundColor: ui.colors.surface,
+            },
+            headerTintColor: ui.colors.textPrimary,
+            headerTitleStyle: {
+              fontSize: 18,
+              fontWeight: '700',
+              color: ui.colors.textPrimary,
+            },
+            contentStyle: {
+              backgroundColor: ui.colors.background,
+            },
           }}
           initialRouteName="Loading"
         >
@@ -89,19 +103,19 @@ const RootNavigator = () => {
 
 const styles = StyleSheet.create({
   button: {
-    paddingHorizontal: 5,
-    paddingVertical: 5,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#4caf50',
-    borderRadius: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: ui.colors.surfaceSoft,
+    borderWidth: 1,
+    borderColor: ui.colors.border,
+    borderRadius: ui.radius.pill,
     justifyContent: 'center',
     alignItems: 'center',
   },
   buttonText: {
-    color: '#4caf50',
-    fontSize: 14,
-    fontWeight: 'bold',
+    color: ui.colors.primaryDark,
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
 

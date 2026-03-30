@@ -20,6 +20,7 @@ import {
   updateCategory,
   deleteCategory,
 } from '../../service/firebaseService';
+import { shadow, ui } from '../../theme/ui';
 
 export const CategoryManager = () => {
   const [newCategory, setNewCategory] = useState<string>('');
@@ -165,6 +166,7 @@ export const CategoryManager = () => {
         placeholder="New Category"
         value={newCategory}
         onChangeText={setNewCategory}
+        placeholderTextColor={ui.colors.textMuted}
       />
       <TouchableOpacity
         style={[
@@ -197,6 +199,7 @@ export const CategoryManager = () => {
                   value={editedCategoryText}
                   onChangeText={setEditedCategoryText}
                   autoFocus
+                  placeholderTextColor={ui.colors.textMuted}
                 />
                 <TouchableOpacity
                   style={styles.smallButton}
@@ -237,53 +240,50 @@ export const CategoryManager = () => {
 
 const styles = StyleSheet.create({
   section: {
-    paddingVertical: 20,
-    paddingHorizontal: 10,
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    paddingVertical: 18,
+    paddingHorizontal: 14,
+    backgroundColor: ui.colors.surface,
+    borderRadius: ui.radius.lg,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: ui.colors.border,
+    ...shadow,
   },
   subtitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 15,
-    color: '#333',
+    color: ui.colors.textPrimary,
   },
   instructions: {
-    fontSize: 14,
-    color: '#666',
+    ...ui.typography.body,
+    color: ui.colors.textSecondary,
     marginBottom: 15,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: ui.colors.border,
+    borderRadius: ui.radius.md,
     padding: 12,
     marginBottom: 15,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: ui.colors.surface,
+    color: ui.colors.textPrimary,
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: ui.colors.primary,
     padding: 15,
-    borderRadius: 8,
+    borderRadius: ui.radius.md,
     marginTop: 10,
   },
   buttonDisabled: {
-    backgroundColor: '#cccccc',
+    backgroundColor: ui.colors.disabled,
   },
   buttonText: {
-    color: '#fff',
+    color: ui.colors.surface,
     textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '600',
+    ...ui.typography.button,
   },
   buttonTextDisabled: {
-    backgroundColor: '#ccc',
     opacity: 0.7,
   },
   categoriesTitle: {
@@ -297,35 +297,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: ui.colors.border,
   },
   categoryText: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
+    color: ui.colors.textPrimary,
   },
   editInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
+    borderColor: ui.colors.border,
+    borderRadius: ui.radius.sm,
     padding: 8,
     marginRight: 10,
+    color: ui.colors.textPrimary,
   },
   smallButton: {
-    backgroundColor: '#007AFF',
-    padding: 8,
-    borderRadius: 4,
+    backgroundColor: ui.colors.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: ui.radius.sm,
     marginLeft: 10,
   },
   deleteButton: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: ui.colors.danger,
   },
   cancelButton: {
-    backgroundColor: '#8E8E93',
+    backgroundColor: ui.colors.textMuted,
   },
   smallButtonText: {
-    color: '#fff',
-    fontSize: 14,
+    color: ui.colors.surface,
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

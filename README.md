@@ -82,6 +82,20 @@ module.exports = defaultConfig;
 ### Authentication
 - Implemented user sign-up, login, and logout functionality using Firebase authentication.
 
+### Environment setup
+- Copy `.env.example` to `.env.local`.
+- Configure `EXPO_PUBLIC_ADMIN_EMAILS` with your master/admin email(s).
+- Fill Google OAuth client IDs for Expo/Firebase login:
+  - `EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID`
+  - `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`
+  - `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`
+  - `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`
+
+Example:
+```
+EXPO_PUBLIC_ADMIN_EMAILS=michaelds.lim@gmail.com
+```
+
 ### Expo prebuild
 - To set up the Android and iOS folders for generating IPA and APK files.
 

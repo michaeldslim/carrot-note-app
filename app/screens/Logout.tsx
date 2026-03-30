@@ -10,6 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackList } from '../navigation/RootNavigator';
+import { ui } from '../theme/ui';
 
 type NoteLogoutProps = NativeStackNavigationProp<RootStackList, 'List'>;
 
@@ -41,18 +42,18 @@ const Logout: React.FC = () => {
 const styles = StyleSheet.create({
   button: {
     alignSelf: 'stretch',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    paddingVertical: 16,
-    backgroundColor: '#f44336',
-    borderRadius: 12,
+    marginHorizontal: 14,
+    marginBottom: 18,
+    paddingVertical: 14,
+    backgroundColor: ui.colors.danger,
+    borderRadius: ui.radius.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: ui.colors.surface,
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
 
