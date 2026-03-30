@@ -17,8 +17,14 @@ import { CategoryManager } from '../components/categoryManager';
 import { PasswordManager } from '../components/passwordManager';
 import Logout from './Logout';
 import { ui } from '../theme/ui';
+import { FIREBASE_AUTH } from '../../firebaseConfig';
 
 const Settings = () => {
+  const isGoogleUser =
+    FIREBASE_AUTH.currentUser?.providerData?.some(
+      (provider) => provider.providerId === 'google.com',
+    ) ?? false;
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -35,7 +41,7 @@ const Settings = () => {
               <Text style={styles.pageTitle}>Settings</Text>
               <Text style={styles.pageSubtitle}>Manage your account and preferences</Text>
             </View>
-            <PasswordManager />
+            {!isGoogleUser ? <PasswordManager /> : null}
             <Text style={styles.sectionTitle}>Categories</Text>
             <CategoryManager />
           </ScrollView>

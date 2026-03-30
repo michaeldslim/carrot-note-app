@@ -202,7 +202,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
                   ? styles.titleInputActive
                   : styles.titleInputInactive
               }
-              placeholder={'Title'}
+              placeholder={'Note'}
               onChangeText={(text: string) => setTitle(text.trimStart())}
               value={title}
               maxLength={80}
@@ -216,7 +216,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
                   ? styles.activeInput
                   : styles.inActiveInput
               }
-              placeholder={'Jot it down here (optional)'}
+              placeholder={'Details (optional)'}
               onChangeText={(text: string) => setNoteText(text.trimStart())}
               value={noteText}
               maxLength={200}
@@ -238,7 +238,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
                 onPress={title.trim().length >= 3 ? handleAddNote : () => {}}
               >
                 <Text style={styles.addButtonText}>
-                  {isAdding ? 'Adding note...' : 'Add carrot note'}
+                  {isAdding ? 'Adding note...' : 'Add note'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -296,9 +296,9 @@ const NoteList = ({ navigation }: NoteListProps) => {
               showsVerticalScrollIndicator={true}
               ListEmptyComponent={
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateTitle}>No notes yet</Text>
+                  <Text style={styles.emptyStateTitle}>No todos yet</Text>
                   <Text style={styles.emptyStateText}>
-                    Add your first carrot note above to get started.
+                    Add your first todo above to get started.
                   </Text>
                 </View>
               }
@@ -424,7 +424,8 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 13,
+    paddingVertical: 10,
+    paddingHorizontal: 13,
     marginBottom: 10,
     borderRadius: ui.radius.md,
     width: '100%',

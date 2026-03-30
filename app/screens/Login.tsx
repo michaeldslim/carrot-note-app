@@ -14,6 +14,7 @@ import {
   KeyboardAvoidingView,
   Image,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { IconButton } from 'react-native-paper';
@@ -81,6 +82,8 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
         return;
       }
 
+      let shouldStopSubmitting = true;
+
       try {
         const idToken = response.params?.id_token;
 
@@ -99,10 +102,13 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
         }
 
         setError(null);
+        shouldStopSubmitting = false;
       } catch (googleError: any) {
         setError(getAuthErrorMessage(googleError?.code));
       } finally {
-        setIsGoogleSubmitting(false);
+        if (shouldStopSubmitting) {
+          setIsGoogleSubmitting(false);
+        }
       }
     };
 
@@ -136,6 +142,15 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
     !email.trim() || !password.trim() || isSubmitting || isGoogleSubmitting;
   const isGoogleDisabled = !request || isSubmitting || isGoogleSubmitting;
 
+  if (isGoogleSubmitting) {
+    return (
+      <View style={styles.loadingOverlay}>
+        <ActivityIndicator size="large" color={ui.colors.primary} />
+        <Text style={styles.loadingOverlayText}>Signing you in with Google...</Text>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -154,6 +169,29 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
             <Text style={styles.subtitle}>Sign in and keep your notes in sync</Text>
           </View>
           {error && <Text style={styles.errorText}>{error}</Text>}
+
+          <TouchableOpacity
+            style={[
+              styles.button,
+              styles.googlePrimaryButton,
+              isGoogleDisabled && styles.disabledButton,
+            ]}
+            onPress={handleGoogleLogin}
+            disabled={isGoogleDisabled}
+          >
+            <Text style={styles.googlePrimaryButtonText}>
+              {isGoogleSubmitting ? 'Connecting Google...' : 'Continue with Google'}
+            </Text>
+          </TouchableOpacity>
+          <Text style={styles.googleHint}>Gmail accounts only</Text>
+
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or use email and password</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <View style={styles.manualSection}>
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -183,26 +221,17 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.button,
-              isDisabled ? styles.disabledButton : styles.addButton,
+              styles.manualButton,
+              isDisabled && styles.disabledButton,
             ]}
             onPress={handleLogin}
             disabled={isDisabled}
           >
-            <Text style={styles.buttonText}>{isSubmitting ? 'Signing in...' : 'Login'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.button,
-              styles.googleButton,
-              isGoogleDisabled && styles.disabledButton,
-            ]}
-            onPress={handleGoogleLogin}
-            disabled={isGoogleDisabled}
-          >
-            <Text style={styles.googleButtonText}>
-              {isGoogleSubmitting ? 'Connecting Google...' : 'Continue with Google (Gmail only)'}
+            <Text style={styles.manualButtonText}>
+              {isSubmitting ? 'Signing in...' : 'Sign in with Email'}
             </Text>
           </TouchableOpacity>
+          </View>
           <TouchableOpacity
             style={styles.link}
             onPress={() => navigation.navigate('Signup')}
@@ -216,14 +245,52 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  loadingOverlay: {
+    flex: 1,
+    backgroundColor: ui.colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: ui.spacing.lg,
+  },
+  loadingOverlayText: {
+    marginTop: ui.spacing.md,
+    color: ui.colors.textSecondary,
+    fontSize: 14,
+    textAlign: 'center',
+  },
   keyboardAvoidingView: {
     flex: 1,
     backgroundColor: ui.colors.background,
   },
-  googleButtonText: {
-    color: ui.colors.textPrimary,
+  googlePrimaryButtonText: {
+    color: ui.colors.surface,
     ...ui.typography.button,
     fontSize: 14,
+  },
+  googleHint: {
+    marginTop: -4,
+    marginBottom: ui.spacing.md,
+    textAlign: 'center',
+    color: ui.colors.textMuted,
+    fontSize: 12,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: ui.spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: ui.colors.border,
+  },
+  dividerText: {
+    marginHorizontal: 10,
+    color: ui.colors.textMuted,
+    fontSize: 12,
+  },
+  manualSection: {
+    marginBottom: ui.spacing.xs,
   },
   scrollViewContent: {
     flexGrow: 1,
@@ -283,12 +350,12 @@ const styles = StyleSheet.create({
     color: ui.colors.textPrimary,
   },
   disabledButton: {
-    backgroundColor: ui.colors.disabled,
+    opacity: 0.6,
   },
-  addButton: {
+  googlePrimaryButton: {
     backgroundColor: ui.colors.primary,
   },
-  googleButton: {
+  manualButton: {
     backgroundColor: ui.colors.surfaceSoft,
     borderWidth: 1,
     borderColor: ui.colors.border,
@@ -300,9 +367,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: ui.spacing.sm,
   },
-  buttonText: {
-    color: ui.colors.surface,
+  manualButtonText: {
+    color: ui.colors.textPrimary,
     ...ui.typography.button,
+    fontSize: 14,
   },
   link: {
     marginTop: ui.spacing.xs,

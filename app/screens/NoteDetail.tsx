@@ -89,7 +89,7 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
           style={styles.titleInput}
           value={editTitle}
           onChangeText={(text) => setEditTitle(text.trimStart())}
-          placeholder="Title"
+          placeholder="Todo"
           maxLength={80}
           multiline={false}
         />
@@ -226,7 +226,8 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 15,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
     marginBottom: 10,
     borderRadius: ui.radius.md,
     width: '100%',
