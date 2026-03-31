@@ -25,6 +25,7 @@ import {
 } from 'firebase/auth';
 import { RootStackList } from '../navigation/RootNavigator';
 import { getAuthErrorMessage } from '../service/firebaseErrors';
+import { shadow, ui } from '../theme/ui';
 
 type NoteListProps = NativeStackScreenProps<RootStackList, 'Signup'>;
 
@@ -36,6 +37,7 @@ const Signup: React.FC<NoteListProps> = ({ navigation }) => {
   const [passwordsMatch, setPasswordsMatch] = useState<boolean | null>(null);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const auth = FIREBASE_AUTH;
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -119,6 +121,7 @@ const Signup: React.FC<NoteListProps> = ({ navigation }) => {
 
   const handleSignup = async () => {
     try {
+      setIsSubmitting(true);
       const emailErrorMessage = 'Please enter a valid email address.';
 
       if (!emailPattern.test(email)) {
@@ -161,8 +164,13 @@ const Signup: React.FC<NoteListProps> = ({ navigation }) => {
       setError(null);
     } catch (error: any) {
       setError(getAuthErrorMessage(error.code));
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  const isDisabled =
+    !email.trim() || !password.trim() || !confirmPassword.trim() || isSubmitting;
 
   return (
     <KeyboardAvoidingView
@@ -176,6 +184,10 @@ const Signup: React.FC<NoteListProps> = ({ navigation }) => {
         <View style={styles.container}>
           <View style={styles.logoContainer}>
             <Image source={require('../assets/logo.png')} style={styles.logo} />
+          </View>
+          <View style={styles.titleWrap}>
+            <Text style={styles.title}>Create your account</Text>
+            <Text style={styles.subtitle}>Start organizing your notes with clarity</Text>
           </View>
           {error &&
             (error.startsWith(
@@ -208,6 +220,7 @@ const Signup: React.FC<NoteListProps> = ({ navigation }) => {
             autoCapitalize="none"
             keyboardType="email-address"
             autoComplete="email"
+            placeholderTextColor={ui.colors.textMuted}
           />
           <View style={styles.passwordInputContainer}>
             <TextInput
@@ -217,10 +230,12 @@ const Signup: React.FC<NoteListProps> = ({ navigation }) => {
               secureTextEntry={!showPassword}
               onChangeText={handlePasswordChange}
               autoCapitalize="none"
+              placeholderTextColor={ui.colors.textMuted}
             />
             <IconButton
               icon={showPassword ? 'eye-off' : 'eye'}
               size={20}
+              iconColor={ui.colors.textSecondary}
               onPress={() => setShowPassword((prev) => !prev)}
             />
           </View>
@@ -232,26 +247,24 @@ const Signup: React.FC<NoteListProps> = ({ navigation }) => {
               secureTextEntry={!showConfirmPassword}
               onChangeText={handleConfirmPasswordChange}
               autoCapitalize="none"
+              placeholderTextColor={ui.colors.textMuted}
             />
             <IconButton
               icon={showConfirmPassword ? 'eye-off' : 'eye'}
               size={20}
+              iconColor={ui.colors.textSecondary}
               onPress={() => setShowConfirmPassword((prev) => !prev)}
             />
           </View>
           <TouchableOpacity
             style={[
               styles.button,
-              !email.trim() || !password.trim() || !confirmPassword.trim()
-                ? styles.disabledButton
-                : styles.addButton,
+              isDisabled ? styles.disabledButton : styles.addButton,
             ]}
             onPress={handleSignup}
-            disabled={
-              !email.trim() || !password.trim() || !confirmPassword.trim()
-            }
+            disabled={isDisabled}
           >
-            <Text style={styles.buttonText}>Sign Up</Text>
+            <Text style={styles.buttonText}>{isSubmitting ? 'Creating account...' : 'Sign Up'}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.link}
@@ -268,110 +281,127 @@ const Signup: React.FC<NoteListProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
+    backgroundColor: ui.colors.background,
   },
   scrollViewContent: {
     flexGrow: 1,
+    justifyContent: 'center',
   },
   container: {
-    flex: 1,
-    justifyContent: 'flex-start',
-    paddingTop: 80,
-    paddingHorizontal: 10,
-    backgroundColor: '#f7f7f7',
+    marginHorizontal: 16,
+    borderRadius: ui.radius.lg,
+    borderWidth: 1,
+    borderColor: ui.colors.border,
+    padding: ui.spacing.xl,
+    backgroundColor: ui.colors.surface,
+    ...shadow,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    ...ui.typography.title,
+    color: ui.colors.textPrimary,
     textAlign: 'center',
-    marginBottom: 24,
+  },
+  subtitle: {
+    ...ui.typography.subtitle,
+    color: ui.colors.textSecondary,
+    textAlign: 'center',
+  },
+  titleWrap: {
+    marginBottom: ui.spacing.lg,
   },
   errorText: {
-    color: 'red',
+    color: ui.colors.danger,
     fontSize: 14,
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: ui.spacing.sm,
   },
   passwordRuleContainer: {
-    marginHorizontal: 10,
-    marginBottom: 10,
+    marginBottom: ui.spacing.md,
+    backgroundColor: '#FFF4F4',
+    borderWidth: 1,
+    borderColor: '#F3C8C8',
+    borderRadius: ui.radius.md,
+    padding: ui.spacing.md,
   },
   passwordRuleTitleText: {
-    color: 'green',
+    color: ui.colors.textPrimary,
     fontSize: 14,
+    textAlign: 'left',
+    marginBottom: 4,
+    fontWeight: '700',
+  },
+  passwordRuleItemText: {
+    color: ui.colors.textSecondary,
+    fontSize: 12,
     textAlign: 'left',
     marginBottom: 2,
   },
-  passwordRuleItemText: {
-    color: 'green',
-    fontSize: 12,
-    textAlign: 'left',
-    marginBottom: 0,
-  },
   input: {
-    height: 50,
-    borderColor: '#cccccc',
+    minHeight: 52,
+    borderColor: ui.colors.border,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: ui.radius.md,
     paddingHorizontal: 16,
-    marginBottom: 16,
-    backgroundColor: '#ffffff',
+    marginBottom: ui.spacing.md,
+    backgroundColor: ui.colors.surface,
+    color: ui.colors.textPrimary,
   },
   passwordInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderColor: '#cccccc',
+    borderColor: ui.colors.border,
     borderWidth: 1,
-    borderRadius: 8,
-    backgroundColor: '#ffffff',
-    marginBottom: 16,
+    borderRadius: ui.radius.md,
+    backgroundColor: ui.colors.surface,
+    marginBottom: ui.spacing.md,
   },
   passwordInput: {
     flex: 1,
-    height: 50,
+    minHeight: 52,
     paddingHorizontal: 16,
+    color: ui.colors.textPrimary,
   },
   passwordMatchText: {
-    color: 'green',
+    color: ui.colors.success,
     fontSize: 14,
-    marginBottom: 8,
+    marginBottom: ui.spacing.sm,
     textAlign: 'center',
+    fontWeight: '600',
   },
   disabledButton: {
-    backgroundColor: '#d8d8d8',
+    backgroundColor: ui.colors.disabled,
   },
   addButton: {
-    backgroundColor: '#1976d2',
+    backgroundColor: ui.colors.primary,
   },
   button: {
-    height: 50,
-    borderRadius: 8,
+    minHeight: 52,
+    borderRadius: ui.radius.md,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: ui.spacing.sm,
   },
   buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: ui.colors.surface,
+    ...ui.typography.button,
   },
   link: {
-    marginTop: 12,
-    marginBottom: 40,
+    marginTop: ui.spacing.xs,
     alignItems: 'center',
   },
   linkText: {
-    color: '#1976d2',
-    fontSize: 16,
+    color: ui.colors.primaryDark,
+    fontSize: 15,
+    fontWeight: '600',
     textAlign: 'center',
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: ui.spacing.md,
   },
   logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 30,
+    width: 82,
+    height: 82,
   },
 });
 

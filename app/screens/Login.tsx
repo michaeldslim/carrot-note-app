@@ -14,14 +14,27 @@ import {
   KeyboardAvoidingView,
   Image,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { IconButton } from 'react-native-paper';
-import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
+import {
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithCredential,
+} from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackList } from '../navigation/RootNavigator';
 import { getAuthErrorMessage } from '../service/firebaseErrors';
+import { shadow, ui } from '../theme/ui';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import Constants from 'expo-constants';
+import { GOOGLE_AUTH_CONFIG, isGmailAddress } from '../config/auth';
+
+WebBrowser.maybeCompleteAuthSession();
 
 type NoteListProps = NativeStackScreenProps<RootStackList, 'Login'>;
 
@@ -30,8 +43,19 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState<boolean>(false);
 
   const auth = FIREBASE_AUTH;
+  const isExpoGo = Constants.executionEnvironment === 'storeClient';
+  const proxyClientId = GOOGLE_AUTH_CONFIG.webClientId || GOOGLE_AUTH_CONFIG.clientId;
+
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: isExpoGo ? proxyClientId || undefined : undefined,
+    androidClientId: (isExpoGo ? proxyClientId : GOOGLE_AUTH_CONFIG.androidClientId) || undefined,
+    iosClientId: GOOGLE_AUTH_CONFIG.iosClientId || undefined,
+    webClientId: GOOGLE_AUTH_CONFIG.webClientId || undefined,
+  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -44,14 +68,88 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
     return () => unsubscribe();
   }, [auth, navigation]);
 
+  useEffect(() => {
+    const loginWithGoogle = async () => {
+      if (!response) {
+        return;
+      }
+
+      if (response.type !== 'success') {
+        if (response.type === 'error') {
+          setError('Google login failed. Please try again.');
+        }
+        setIsGoogleSubmitting(false);
+        return;
+      }
+
+      let shouldStopSubmitting = true;
+
+      try {
+        const idToken = response.params?.id_token;
+
+        if (!idToken) {
+          setError('Google login failed: missing token.');
+          return;
+        }
+
+        const googleCredential = GoogleAuthProvider.credential(idToken);
+        const userCredential = await signInWithCredential(auth, googleCredential);
+
+        if (!isGmailAddress(userCredential.user.email)) {
+          await auth.signOut();
+          setError('Only Gmail accounts are allowed for Google login.');
+          return;
+        }
+
+        setError(null);
+        shouldStopSubmitting = false;
+      } catch (googleError: any) {
+        setError(getAuthErrorMessage(googleError?.code));
+      } finally {
+        if (shouldStopSubmitting) {
+          setIsGoogleSubmitting(false);
+        }
+      }
+    };
+
+    loginWithGoogle().then();
+  }, [auth, response]);
+
   const handleLogin = async () => {
     try {
+      setIsSubmitting(true);
       await signInWithEmailAndPassword(auth, email, password);
       setError(null);
     } catch (error: any) {
       setError(getAuthErrorMessage(error.code));
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  const handleGoogleLogin = async () => {
+    if (!request) {
+      setError('Google login is unavailable. Check your OAuth client IDs.');
+      return;
+    }
+
+    setError(null);
+    setIsGoogleSubmitting(true);
+    await promptAsync();
+  };
+
+  const isDisabled =
+    !email.trim() || !password.trim() || isSubmitting || isGoogleSubmitting;
+  const isGoogleDisabled = !request || isSubmitting || isGoogleSubmitting;
+
+  if (isGoogleSubmitting) {
+    return (
+      <View style={styles.loadingOverlay}>
+        <ActivityIndicator size="large" color={ui.colors.primary} />
+        <Text style={styles.loadingOverlayText}>Signing you in with Google...</Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -66,8 +164,34 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
           <View style={styles.logoContainer}>
             <Image source={require('../assets/logo.png')} style={styles.logo} />
           </View>
+          <View style={styles.titleWrap}>
+            <Text style={styles.title}>Welcome back</Text>
+            <Text style={styles.subtitle}>Sign in and keep your notes in sync</Text>
+          </View>
           {error && <Text style={styles.errorText}>{error}</Text>}
-          <View style={styles.inputSpacer} />
+
+          <TouchableOpacity
+            style={[
+              styles.button,
+              styles.googlePrimaryButton,
+              isGoogleDisabled && styles.disabledButton,
+            ]}
+            onPress={handleGoogleLogin}
+            disabled={isGoogleDisabled}
+          >
+            <Text style={styles.googlePrimaryButtonText}>
+              {isGoogleSubmitting ? 'Connecting Google...' : 'Continue with Google'}
+            </Text>
+          </TouchableOpacity>
+          <Text style={styles.googleHint}>Gmail accounts only</Text>
+
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or use email and password</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <View style={styles.manualSection}>
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -75,6 +199,7 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
             onChangeText={(e) => setEmail(e.trim())}
             autoCapitalize="none"
             keyboardType="email-address"
+            placeholderTextColor={ui.colors.textMuted}
           />
           <View style={styles.passwordInputContainer}>
             <TextInput
@@ -84,23 +209,29 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
               secureTextEntry={!showPassword}
               onChangeText={(e) => setPassword(e.trim())}
               autoCapitalize="none"
+              placeholderTextColor={ui.colors.textMuted}
             />
             <IconButton
               icon={showPassword ? 'eye-off' : 'eye'}
               size={20}
+              iconColor={ui.colors.textSecondary}
               onPress={() => setShowPassword((prev) => !prev)}
             />
           </View>
           <TouchableOpacity
             style={[
               styles.button,
-              email.trim() === '' ? styles.disabledButton : styles.addButton,
+              styles.manualButton,
+              isDisabled && styles.disabledButton,
             ]}
             onPress={handleLogin}
-            disabled={email.trim() === ''}
+            disabled={isDisabled}
           >
-            <Text style={styles.buttonText}>Login</Text>
+            <Text style={styles.manualButtonText}>
+              {isSubmitting ? 'Signing in...' : 'Sign in with Email'}
+            </Text>
           </TouchableOpacity>
+          </View>
           <TouchableOpacity
             style={styles.link}
             onPress={() => navigation.navigate('Signup')}
@@ -114,93 +245,150 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  loadingOverlay: {
+    flex: 1,
+    backgroundColor: ui.colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: ui.spacing.lg,
+  },
+  loadingOverlayText: {
+    marginTop: ui.spacing.md,
+    color: ui.colors.textSecondary,
+    fontSize: 14,
+    textAlign: 'center',
+  },
   keyboardAvoidingView: {
     flex: 1,
+    backgroundColor: ui.colors.background,
+  },
+  googlePrimaryButtonText: {
+    color: ui.colors.surface,
+    ...ui.typography.button,
+    fontSize: 14,
+  },
+  googleHint: {
+    marginTop: -4,
+    marginBottom: ui.spacing.md,
+    textAlign: 'center',
+    color: ui.colors.textMuted,
+    fontSize: 12,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: ui.spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: ui.colors.border,
+  },
+  dividerText: {
+    marginHorizontal: 10,
+    color: ui.colors.textMuted,
+    fontSize: 12,
+  },
+  manualSection: {
+    marginBottom: ui.spacing.xs,
   },
   scrollViewContent: {
     flexGrow: 1,
+    justifyContent: 'center',
   },
   container: {
-    flex: 1,
-    justifyContent: 'flex-start',
-    paddingTop: 80,
-    paddingHorizontal: 10,
-    backgroundColor: '#f7f7f7',
+    marginHorizontal: 16,
+    borderRadius: ui.radius.lg,
+    borderWidth: 1,
+    borderColor: ui.colors.border,
+    padding: ui.spacing.xl,
+    backgroundColor: ui.colors.surface,
+    ...shadow,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    ...ui.typography.title,
+    color: ui.colors.textPrimary,
     textAlign: 'center',
-    marginBottom: 24,
+  },
+  subtitle: {
+    ...ui.typography.subtitle,
+    color: ui.colors.textSecondary,
+    textAlign: 'center',
+  },
+  titleWrap: {
+    marginBottom: ui.spacing.lg,
   },
   errorText: {
-    color: 'red',
+    color: ui.colors.danger,
     fontSize: 14,
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: ui.spacing.sm,
   },
   input: {
-    height: 50,
-    borderColor: '#cccccc',
+    minHeight: 52,
+    borderColor: ui.colors.border,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: ui.radius.md,
     paddingHorizontal: 16,
-    marginBottom: 16,
-    backgroundColor: '#ffffff',
+    marginBottom: ui.spacing.md,
+    backgroundColor: ui.colors.surface,
+    color: ui.colors.textPrimary,
   },
   passwordInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderColor: '#cccccc',
+    borderColor: ui.colors.border,
     borderWidth: 1,
-    borderRadius: 8,
-    backgroundColor: '#ffffff',
-    marginBottom: 16,
+    borderRadius: ui.radius.md,
+    backgroundColor: ui.colors.surface,
+    marginBottom: ui.spacing.md,
   },
   passwordInput: {
     flex: 1,
-    height: 50,
+    minHeight: 52,
     paddingHorizontal: 16,
-  },
-  inputSpacer: {
-    height: 50,
-    marginBottom: 16,
+    color: ui.colors.textPrimary,
   },
   disabledButton: {
-    backgroundColor: '#d8d8d8',
+    opacity: 0.6,
   },
-  addButton: {
-    backgroundColor: '#4caf50',
+  googlePrimaryButton: {
+    backgroundColor: ui.colors.primary,
+  },
+  manualButton: {
+    backgroundColor: ui.colors.surfaceSoft,
+    borderWidth: 1,
+    borderColor: ui.colors.border,
   },
   button: {
-    height: 50,
-    borderRadius: 8,
+    minHeight: 52,
+    borderRadius: ui.radius.md,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: ui.spacing.sm,
   },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  manualButtonText: {
+    color: ui.colors.textPrimary,
+    ...ui.typography.button,
+    fontSize: 14,
   },
   link: {
-    marginTop: 12,
+    marginTop: ui.spacing.xs,
     alignItems: 'center',
   },
   linkText: {
-    color: '#1976d2',
-    fontSize: 16,
+    color: ui.colors.primaryDark,
+    fontSize: 15,
+    fontWeight: '600',
     textAlign: 'center',
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: ui.spacing.md,
   },
   logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 30,
+    width: 82,
+    height: 82,
   },
 });
 

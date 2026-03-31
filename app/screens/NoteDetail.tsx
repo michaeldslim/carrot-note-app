@@ -11,6 +11,7 @@ import {
   Modal,
   Text,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import React, { useState } from 'react';
 import {
@@ -22,6 +23,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackList } from '../navigation/RootNavigator';
 import { NoteUpdateButton } from '../components/noteUpdateButton';
 import { NoteActionButton } from '../components/noteActionButton';
+import { shadow, ui } from '../theme/ui';
 
 type NoteDetailProps = NativeStackScreenProps<RootStackList, 'Detail'>;
 
@@ -73,13 +75,21 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
   const commonButtonStyles = [styles.button, styles.buttonText];
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.container}>
+      <View style={styles.formHeader}>
+        <Text style={styles.title}>Edit note</Text>
+        <Text style={styles.subtitle}>Update details or manage completion status</Text>
+      </View>
       <View style={styles.form}>
         <TextInput
           style={styles.titleInput}
           value={editTitle}
           onChangeText={(text) => setEditTitle(text.trimStart())}
-          placeholder="Title"
+          placeholder="Todo"
           maxLength={80}
           multiline={false}
         />
@@ -114,6 +124,7 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
           />
         </View>
       </View>
+      </View>
       <Modal
         visible={isModalVisible}
         transparent={true}
@@ -142,41 +153,62 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
           </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   container: {
-    flex: 1,
-    marginHorizontal: 10,
+    marginHorizontal: 16,
+    backgroundColor: ui.colors.surface,
+    borderRadius: ui.radius.lg,
+    borderWidth: 1,
+    borderColor: ui.colors.border,
+    padding: ui.spacing.lg,
+    ...shadow,
+  },
+  formHeader: {
+    marginBottom: ui.spacing.md,
   },
   form: {
-    marginVertical: 10,
+    marginVertical: 4,
     flexDirection: 'column',
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    ...ui.typography.title,
+    fontSize: 26,
+    color: ui.colors.textPrimary,
+  },
+  subtitle: {
+    ...ui.typography.subtitle,
+    color: ui.colors.textSecondary,
   },
   titleInput: {
     fontSize: 16,
-    padding: 10,
+    padding: 12,
     borderWidth: 1,
-    borderColor: '#cccccc',
-    borderRadius: 5,
+    borderColor: ui.colors.border,
+    borderRadius: ui.radius.md,
     width: '100%',
-    marginBottom: 10,
+    marginBottom: ui.spacing.md,
+    backgroundColor: ui.colors.surface,
+    color: ui.colors.textPrimary,
   },
   input: {
     fontSize: 16,
-    padding: 10,
+    padding: 12,
     borderWidth: 1,
-    borderColor: '#cccccc',
-    borderRadius: 5,
+    borderColor: ui.colors.border,
+    borderRadius: ui.radius.md,
     width: '100%',
-    marginBottom: 10,
+    minHeight: 120,
+    marginBottom: ui.spacing.md,
+    backgroundColor: ui.colors.surface,
+    color: ui.colors.textPrimary,
   },
   item: {
     flexDirection: 'row',
@@ -188,51 +220,54 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   buttonContainer: {
-    marginTop: 10,
+    marginTop: 4,
     width: '100%',
   },
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 15,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
     marginBottom: 10,
-    borderRadius: 10,
+    borderRadius: ui.radius.md,
     width: '100%',
   },
   buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: ui.colors.surface,
+    ...ui.typography.button,
   } as TextStyle,
   updateButton: {
-    backgroundColor: '#2196f3',
+    backgroundColor: ui.colors.primary,
   },
   disabledButton: {
-    backgroundColor: '#d8d8d8',
+    backgroundColor: ui.colors.disabled,
   },
   deleteButton: {
-    backgroundColor: '#f44336',
+    backgroundColor: ui.colors.danger,
   },
   toggleButton: {
-    backgroundColor: '#4caf50',
+    backgroundColor: ui.colors.success,
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: ui.colors.overlay,
   },
   modalContent: {
-    width: 300,
+    width: '88%',
     padding: 20,
-    backgroundColor: 'white',
-    borderRadius: 10,
+    backgroundColor: ui.colors.surface,
+    borderRadius: ui.radius.lg,
+    borderWidth: 1,
+    borderColor: ui.colors.border,
     alignItems: 'center',
   },
   modalText: {
-    fontSize: 18,
+    fontSize: 17,
     marginBottom: 20,
     textAlign: 'center',
+    color: ui.colors.textPrimary,
   },
   modalButtons: {
     flexDirection: 'row',
@@ -243,21 +278,22 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
     alignItems: 'center',
-    backgroundColor: '#d8d8d8',
-    borderRadius: 5,
+    backgroundColor: ui.colors.disabled,
+    borderRadius: ui.radius.md,
     marginRight: 5,
   },
   modalButtonDelete: {
     flex: 1,
     padding: 10,
     alignItems: 'center',
-    backgroundColor: '#f44336',
-    borderRadius: 5,
+    backgroundColor: ui.colors.danger,
+    borderRadius: ui.radius.md,
     marginLeft: 5,
   },
   modalButtonText: {
-    color: 'white',
-    fontSize: 16,
+    color: ui.colors.surface,
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
 

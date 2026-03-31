@@ -8,6 +8,7 @@ import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Alert } from 'rea
 import { Note } from './types';
 import { IconButton } from 'react-native-paper';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { shadow, ui } from '../theme/ui';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -89,7 +90,7 @@ const NoteItem: React.FC<NoteItemProps> = ({
       // Hide the container completely when not fully swiped
       transform: [{ translateX: isFullyOpen ? 0 : 100 }],
       pointerEvents: isFullyOpen ? 'auto' : 'none',
-      backgroundColor: '#f7f7f7',
+      backgroundColor: ui.colors.background,
     };
   });
 
@@ -164,8 +165,8 @@ const styles = StyleSheet.create({
   rowContainer: {
     flex: 1,
     width: '100%',
-    marginBottom: 16,
-    marginTop: 6,
+    marginBottom: 12,
+    marginTop: 4,
   },
   container: {
     flex: 1,
@@ -180,26 +181,30 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2196f3',
-    borderRadius: 5,
-    paddingHorizontal: 12,
+    backgroundColor: ui.colors.surface,
+    borderRadius: ui.radius.md,
+    borderWidth: 1,
+    borderColor: ui.colors.border,
+    paddingHorizontal: 14,
     paddingVertical: 14,
     minHeight: 65,
+    ...shadow,
   },
   noteText: {
     flex: 1,
-    fontSize: 17,
+    fontSize: 16,
     textAlignVertical: 'center',
     paddingVertical: 2,
+    color: ui.colors.textPrimary,
   },
   completed: {
     textDecorationLine: 'line-through',
-    color: '#0f0f0f',
+    color: ui.colors.textMuted,
     fontWeight: '400',
   },
   notCompleted: {
-    color: '#ffffff',
-    fontWeight: '400',
+    color: ui.colors.textPrimary,
+    fontWeight: '600',
   },
   deleteContainer: {
     width: Math.abs(SWIPE_THRESHOLD),
@@ -208,7 +213,7 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f7f7f7',
+    backgroundColor: ui.colors.background,
   },
   deleteButton: {
     marginTop: 5,
@@ -218,7 +223,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   oldNote: {
-    backgroundColor: '#dca470',
+    borderColor: ui.colors.accent,
+    backgroundColor: '#FFF4E8',
   },
 });
 

@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { shadow, ui } from '../theme/ui';
 
 interface CustomDropdownProps {
   selectedValue: string;
@@ -71,36 +72,44 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#2196f3',
-    padding: 10,
-    alignItems: 'center',
-    marginVertical: 10,
-    borderRadius: 5,
+    backgroundColor: ui.colors.surface,
+    borderWidth: 1,
+    borderColor: ui.colors.border,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'flex-start',
+    marginBottom: ui.spacing.md,
+    borderRadius: ui.radius.md,
+    ...shadow,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: ui.colors.textPrimary,
     fontSize: 16,
+    fontWeight: '600',
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: ui.colors.overlay,
   },
   modalContent: {
-    width: 300,
-    backgroundColor: 'white',
-    borderRadius: 10,
+    width: '88%',
+    backgroundColor: ui.colors.surface,
+    borderRadius: ui.radius.lg,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: ui.colors.border,
   },
   closeButton: {
-    backgroundColor: '#2196f3',
-    padding: 10,
+    backgroundColor: ui.colors.primary,
+    paddingVertical: 13,
     alignItems: 'center',
   },
   closeButtonText: {
-    color: 'white',
-    fontSize: 16,
+    color: ui.colors.surface,
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
 

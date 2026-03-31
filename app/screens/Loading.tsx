@@ -4,12 +4,13 @@
  the terms of the GNU General Public License v3.
 */
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Text, Image } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackList } from '../navigation/RootNavigator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
+import { ui } from '../theme/ui';
 
 type LoadingProps = NativeStackScreenProps<RootStackList, 'Loading'>;
 
@@ -50,7 +51,9 @@ const Loading: React.FC<LoadingProps> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#0000ff" />
+      <Image source={require('../assets/logo.png')} style={styles.logo} />
+      <ActivityIndicator size="large" color={ui.colors.primary} />
+      <Text style={styles.text}>Preparing your notes...</Text>
     </View>
   );
 };
@@ -60,7 +63,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: ui.colors.background,
+  },
+  logo: {
+    width: 88,
+    height: 88,
+    marginBottom: 20,
+  },
+  text: {
+    marginTop: 14,
+    color: ui.colors.textSecondary,
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
 

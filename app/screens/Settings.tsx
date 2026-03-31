@@ -11,11 +11,20 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  Text,
 } from 'react-native';
 import { CategoryManager } from '../components/categoryManager';
+import { PasswordManager } from '../components/passwordManager';
 import Logout from './Logout';
+import { ui } from '../theme/ui';
+import { FIREBASE_AUTH } from '../../firebaseConfig';
 
 const Settings = () => {
+  const isGoogleUser =
+    FIREBASE_AUTH.currentUser?.providerData?.some(
+      (provider) => provider.providerId === 'google.com',
+    ) ?? false;
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -28,6 +37,12 @@ const Settings = () => {
             style={styles.scrollView}
             contentContainerStyle={styles.contentContainer}
           >
+            <View style={styles.pageHeader}>
+              <Text style={styles.pageTitle}>Settings</Text>
+              <Text style={styles.pageSubtitle}>Manage your account and preferences</Text>
+            </View>
+            {!isGoogleUser ? <PasswordManager /> : null}
+            <Text style={styles.sectionTitle}>Categories</Text>
             <CategoryManager />
           </ScrollView>
           <Logout />
@@ -40,11 +55,11 @@ const Settings = () => {
 const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: ui.colors.background,
   },
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: ui.colors.background,
   },
   container: {
     flex: 1,
@@ -54,8 +69,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    marginHorizontal: 0,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  pageHeader: {
+    marginBottom: 8,
+  },
+  pageTitle: {
+    ...ui.typography.title,
+    color: ui.colors.textPrimary,
+    fontSize: 30,
+  },
+  pageSubtitle: {
+    ...ui.typography.subtitle,
+    color: ui.colors.textSecondary,
+  },
+  sectionTitle: {
+    marginTop: 10,
+    marginBottom: 8,
+    color: ui.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '700',
   },
 });
 

@@ -13,6 +13,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { changePassword } from '../../service/firebaseService';
+import { shadow, ui } from '../../theme/ui';
 
 export const PasswordManager = () => {
   const [currentPassword, setCurrentPassword] = useState<string>('');
@@ -39,12 +40,16 @@ export const PasswordManager = () => {
   return (
     <View style={styles.section}>
       <Text style={styles.subtitle}>Change Password</Text>
+      <Text style={styles.instructions}>
+        Re-enter your current password to secure this change.
+      </Text>
       <TextInput
         style={styles.input}
         placeholder="Current Password"
         secureTextEntry
         value={currentPassword}
         onChangeText={setCurrentPassword}
+        placeholderTextColor={ui.colors.textMuted}
       />
       <TextInput
         style={styles.input}
@@ -52,6 +57,7 @@ export const PasswordManager = () => {
         secureTextEntry
         value={newPassword}
         onChangeText={setNewPassword}
+        placeholderTextColor={ui.colors.textMuted}
       />
       <TextInput
         style={styles.input}
@@ -59,6 +65,7 @@ export const PasswordManager = () => {
         secureTextEntry
         value={confirmPassword}
         onChangeText={setConfirmPassword}
+        placeholderTextColor={ui.colors.textMuted}
       />
       <TouchableOpacity 
         style={[
@@ -76,44 +83,48 @@ export const PasswordManager = () => {
 
 const styles = StyleSheet.create({
   section: {
-    paddingVertical: 20,
-    paddingHorizontal: 10,
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    paddingVertical: 18,
+    paddingHorizontal: 14,
+    backgroundColor: ui.colors.surface,
+    borderRadius: ui.radius.lg,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: ui.colors.border,
+    ...shadow,
   },
   subtitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
+    fontWeight: '700',
+    marginBottom: 10,
+    color: ui.colors.textPrimary,
+  },
+  instructions: {
+    ...ui.typography.body,
+    color: ui.colors.textSecondary,
+    marginBottom: 14,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: ui.colors.border,
+    borderRadius: ui.radius.md,
     padding: 12,
     marginBottom: 15,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: ui.colors.surface,
+    color: ui.colors.textPrimary,
   },
   button: {
-    backgroundColor: '#007AFF',
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: ui.colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: ui.radius.md,
     alignItems: 'center',
   },
   buttonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: ui.colors.disabled,
     opacity: 0.7,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: ui.colors.surface,
+    ...ui.typography.button,
   },
 });

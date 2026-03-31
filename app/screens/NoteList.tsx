@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useState, useCallback } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   fetchNotes,
   addNote,
@@ -35,6 +36,7 @@ import NoteItem from './NoteItem';
 import CustomDropdown from './CustomDropdown';
 import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { shadow, ui } from '../theme/ui';
 
 type NoteListProps = NativeStackScreenProps<RootStackList, 'List'>;
 
@@ -42,12 +44,14 @@ const NoteList = ({ navigation }: NoteListProps) => {
   const isFocused = useIsFocused();
   const [noteText, setNoteText] = useState<string>('');
   const [title, setTitle] = useState<string>('');
+  const [showDetails, setShowDetails] = useState<boolean>(false);
   const [notes, setNotes] = useState<Note[]>([]);
   const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
   const [category, setCategory] = useState<string>('Select an option');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [categories, setCategories] = useState<string[]>(['Select an option']);
+  const [isAdding, setIsAdding] = useState<boolean>(false);
   const auth = FIREBASE_AUTH;
   const userId = auth.currentUser?.uid;
 
@@ -108,20 +112,32 @@ const NoteList = ({ navigation }: NoteListProps) => {
 
   const handleAddNote = async () => {
     if (userId && title.trim() && category) {
-      const noteItem: Omit<Note, 'id'> = {
-        title: title.trim() || undefined,
-        note: noteText,
-        completed: false,
-        createdAt: new Date().toISOString(),
-        category,
-        userId: userId,
-      };
-      await addNote(noteItem);
-      const fetchedNotes = await fetchNotes(userId);
-      setNotes(fetchedNotes);
-      setNoteText('');
-      setTitle('');
-      setCategory('Select an option');
+      try {
+        setIsAdding(true);
+        const noteItem: Omit<Note, 'id'> = {
+          title: title.trim() || undefined,
+          note: noteText,
+          completed: false,
+          createdAt: new Date().toISOString(),
+          category,
+          userId: userId,
+        };
+        await addNote(noteItem);
+        const fetchedNotes = await fetchNotes(userId);
+        setNotes(fetchedNotes);
+        setNoteText('');
+        setTitle('');
+        setShowDetails(false);
+        setCategory('Select an option');
+      } catch (error) {
+        if (error instanceof Error) {
+          Alert.alert('Error', `Failed to add note: ${error.message}`);
+        } else {
+          Alert.alert('Error', 'An unknown error occurred');
+        }
+      } finally {
+        setIsAdding(false);
+      }
     }
   };
 
@@ -156,6 +172,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
       <SafeAreaView style={styles.safeArea}>
         <GestureHandlerRootView style={styles.container}>
           <View style={styles.inputSection}>
+            <View style={styles.formCard}>
             {Platform.OS === 'ios' ? (
               <CustomDropdown
                 selectedValue={category}
@@ -168,7 +185,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
                   selectedValue={category}
                   onValueChange={(value) => setCategory(value)}
                   style={{
-                    color: '#FFFFFF',
+                    color: ui.colors.textPrimary,
                     fontSize: 16,
                   }}
                 >
@@ -184,42 +201,82 @@ const NoteList = ({ navigation }: NoteListProps) => {
                   ? styles.titleInputActive
                   : styles.titleInputInactive
               }
-              placeholder={'Title'}
+              placeholder={'Note'}
               onChangeText={(text: string) => setTitle(text.trimStart())}
               value={title}
               maxLength={80}
               multiline={false}
               editable={category !== 'Select an option'}
+              placeholderTextColor={ui.colors.textMuted}
             />
-            <TextInput
-              style={
-                category !== 'Select an option'
-                  ? styles.activeInput
-                  : styles.inActiveInput
-              }
-              placeholder={'Jot it down here (optional)'}
-              onChangeText={(text: string) => setNoteText(text.trimStart())}
-              value={noteText}
-              maxLength={200}
-              multiline={true}
-              numberOfLines={4}
-              textAlignVertical="top"
-              editable={category !== 'Select an option'}
-            />
+            <TouchableOpacity
+              style={styles.detailsToggle}
+              disabled={category === 'Select an option'}
+              onPress={() => {
+                setShowDetails((prev) => {
+                  if (prev) {
+                    setNoteText('');
+                  }
+                  return !prev;
+                });
+              }}
+            >
+              <View style={styles.detailsToggleContent}>
+                <MaterialCommunityIcons
+                  name={showDetails ? 'chevron-up-circle' : 'chevron-down-circle'}
+                  size={16}
+                  color={ui.colors.danger}
+                />
+                <Text
+                  style={[
+                    styles.detailsToggleText,
+                    category === 'Select an option' && styles.detailsToggleTextDisabled,
+                  ]}
+                >
+                  {showDetails ? 'Hide details' : 'Add details'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            {showDetails ? (
+              <TextInput
+                style={
+                  category !== 'Select an option'
+                    ? styles.activeInput
+                    : styles.inActiveInput
+                }
+                placeholder={'Details (optional)'}
+                onChangeText={(text: string) => setNoteText(text.trimStart())}
+                value={noteText}
+                maxLength={200}
+                multiline={true}
+                numberOfLines={3}
+                textAlignVertical="top"
+                editable={category !== 'Select an option'}
+                placeholderTextColor={ui.colors.textMuted}
+              />
+            ) : null}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={[
                   styles.button,
-                  title.trim().length < 3
+                  title.trim().length < 3 || isAdding
                     ? styles.disabledButton
                     : styles.addButton,
                 ]}
-                disabled={title.trim().length < 3}
+                disabled={title.trim().length < 3 || isAdding}
                 onPress={title.trim().length >= 3 ? handleAddNote : () => {}}
               >
-                <Text style={styles.addButtonText}>Add carrot note</Text>
+                <Text style={styles.addButtonText}>
+                  {isAdding ? 'Adding note...' : 'Add note'}
+                </Text>
               </TouchableOpacity>
             </View>
+            </View>
+          </View>
+          <View style={styles.stickyFilterContainer}>
+            <Text style={styles.helperText}>
+              Tip: swipe left on completed notes to delete quickly.
+            </Text>
             <View style={styles.filterContainer}>
               <ScrollView
                 horizontal
@@ -268,6 +325,14 @@ const NoteList = ({ navigation }: NoteListProps) => {
               )}
               contentContainerStyle={styles.listContentContainer}
               showsVerticalScrollIndicator={true}
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateTitle}>No todos yet</Text>
+                  <Text style={styles.emptyStateText}>
+                    Add your first todo above to get started.
+                  </Text>
+                </View>
+              }
               ListFooterComponent={<View style={styles.listFooter} />}
               ListHeaderComponent={<View style={styles.listHeader} />}
               style={styles.flatList}
@@ -282,26 +347,40 @@ const NoteList = ({ navigation }: NoteListProps) => {
 const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: ui.colors.background,
   },
   safeArea: {
     flex: 1,
+    backgroundColor: ui.colors.background,
   },
   container: {
     flex: 1,
-    marginHorizontal: 10,
+    marginHorizontal: 14,
   },
   inputSection: {
-    paddingVertical: 10,
+    paddingVertical: 4,
+  },
+  formCard: {
+    backgroundColor: ui.colors.surface,
+    borderWidth: 1,
+    borderColor: ui.colors.border,
+    borderRadius: ui.radius.lg,
+    padding: ui.spacing.md,
+    ...shadow,
   },
   listContainer: {
     flex: 1,
+    marginTop: 4,
+  },
+  stickyFilterContainer: {
+    paddingBottom: 4,
+    backgroundColor: ui.colors.background,
   },
   flatList: {
     flex: 1,
   },
   listContentContainer: {
-    paddingHorizontal: 5,
+    paddingHorizontal: 2,
     paddingVertical: 5,
     paddingBottom: Platform.OS === 'ios' ? 40 : 20,
   },
@@ -317,77 +396,85 @@ const styles = StyleSheet.create({
   },
   activeInput: {
     fontSize: 16,
-    padding: 10,
+    padding: 12,
     borderWidth: 1,
-    borderColor: '#2196f3',
-    backgroundColor: '#ffffff',
-    borderRadius: 5,
+    borderColor: ui.colors.primary,
+    backgroundColor: ui.colors.surface,
+    borderRadius: ui.radius.md,
     width: '100%',
-    marginBottom: 10,
-    minHeight: 80,
+    marginBottom: ui.spacing.md,
+    minHeight: 64,
+    color: ui.colors.textPrimary,
   },
   inActiveInput: {
     fontSize: 16,
-    padding: 10,
+    padding: 12,
     borderWidth: 1,
-    borderColor: '#cccccc',
-    borderRadius: 5,
+    borderColor: ui.colors.border,
+    borderRadius: ui.radius.md,
     width: '100%',
-    marginBottom: 10,
-    minHeight: 80,
+    marginBottom: ui.spacing.md,
+    minHeight: 64,
+    backgroundColor: ui.colors.surfaceSoft,
+    color: ui.colors.textMuted,
   },
   titleInputActive: {
     fontSize: 16,
-    padding: 10,
+    padding: 12,
     borderWidth: 1,
-    borderColor: '#2196f3',
-    backgroundColor: '#ffffff',
-    borderRadius: 5,
+    borderColor: ui.colors.primary,
+    backgroundColor: ui.colors.surface,
+    borderRadius: ui.radius.md,
     width: '100%',
-    marginBottom: 10,
+    marginBottom: ui.spacing.md,
+    color: ui.colors.textPrimary,
   },
   titleInputInactive: {
     fontSize: 16,
-    padding: 10,
+    padding: 12,
     borderWidth: 1,
-    borderColor: '#cccccc',
-    borderRadius: 5,
+    borderColor: ui.colors.border,
+    borderRadius: ui.radius.md,
     width: '100%',
-    marginBottom: 10,
+    marginBottom: ui.spacing.md,
+    backgroundColor: ui.colors.surfaceSoft,
+    color: ui.colors.textMuted,
   },
   buttonContainer: {
     width: '100%',
+    marginTop: 2,
   },
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 13,
     marginBottom: 10,
-    borderRadius: 5,
+    borderRadius: ui.radius.md,
     width: '100%',
   },
   buttonText: {
-    color: '#4a4a4a',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: ui.colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
   } as TextStyle,
   addButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: ui.colors.surface,
+    ...ui.typography.button,
   } as TextStyle,
   disabledButton: {
-    backgroundColor: '#d8d8d8',
+    backgroundColor: ui.colors.disabled,
   },
   addButton: {
-    backgroundColor: '#2196f3',
+    backgroundColor: ui.colors.primary,
   },
   pickerContainer: {
-    marginBottom: 10,
-    borderColor: '#2196f3',
-    backgroundColor: '#2196f3',
+    marginBottom: ui.spacing.md,
+    borderColor: ui.colors.border,
+    backgroundColor: ui.colors.surface,
     borderWidth: 1,
-    borderRadius: 5,
+    borderRadius: ui.radius.md,
+    ...shadow,
   },
   inputActiveWrapper: {
     borderColor: '#2196f3',
@@ -398,23 +485,23 @@ const styles = StyleSheet.create({
   filterContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginVertical: 6,
+    marginTop: 4,
   },
   filterButton: {
-    borderRadius: 15,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#4a4a4a',
-    paddingVertical: 5,
-    paddingHorizontal: 5,
-    marginRight: 3,
+    borderRadius: ui.radius.pill,
+    backgroundColor: ui.colors.surface,
+    borderWidth: 1,
+    borderColor: ui.colors.border,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    marginRight: 6,
   },
   filterButtonSelected: {
-    backgroundColor: '#f0f0f0',
-    borderColor: '#4a4a4a',
+    backgroundColor: ui.colors.surfaceSoft,
+    borderColor: ui.colors.primary,
   },
   filterButtonTextSelected: {
-    color: '#4a4a4a',
+    color: ui.colors.primaryDark,
   },
   modalContainer: {
     flex: 1,
@@ -461,6 +548,49 @@ const styles = StyleSheet.create({
   },
   categoryContainer: {
     flexDirection: 'row',
+  },
+  helperText: {
+    ...ui.typography.body,
+    color: ui.colors.textMuted,
+    marginTop: 2,
+    marginBottom: ui.spacing.xs,
+  },
+  detailsToggle: {
+    paddingVertical: 6,
+    marginBottom: ui.spacing.sm,
+  },
+  detailsToggleContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  detailsToggleText: {
+    fontSize: 13,
+    color: ui.colors.primaryDark,
+    fontWeight: '600',
+  },
+  detailsToggleTextDisabled: {
+    color: ui.colors.textMuted,
+  },
+  emptyState: {
+    backgroundColor: ui.colors.surface,
+    borderRadius: ui.radius.lg,
+    borderWidth: 1,
+    borderColor: ui.colors.border,
+    padding: ui.spacing.xl,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  emptyStateTitle: {
+    color: ui.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  emptyStateText: {
+    color: ui.colors.textSecondary,
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
 
