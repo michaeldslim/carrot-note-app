@@ -440,7 +440,6 @@ const NoteList = ({ navigation }: NoteListProps) => {
           <View style={styles.inputSection}>
             <ScrollView
               keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
               contentContainerStyle={styles.formScrollContent}
               ref={formScrollRef}
             >
