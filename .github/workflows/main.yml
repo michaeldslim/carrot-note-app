@@ -17,6 +17,7 @@ jobs:
   build-and-push:
     name: Build and push Docker image
     runs-on: ubuntu-latest
+    if: false # Change to true to enable this workflow
 
     permissions:
       contents: read
