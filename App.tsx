@@ -6,6 +6,9 @@
 import React from 'react';
 import RootNavigator from './app/navigation/RootNavigator';
 import { ThemeProvider } from './app/theme/ThemeContext';
+import * as WebBrowser from 'expo-web-browser';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const App: React.FC = () => {
   return (

@@ -58,6 +58,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
   const [calendarVisible, setCalendarVisible] = useState<boolean>(false);
   const [startDate, setStartDate] = useState<string | undefined>(undefined);
   const [endDate, setEndDate] = useState<string | undefined>(undefined);
+  const [formExpanded, setFormExpanded] = useState<boolean>(false);
   const auth = FIREBASE_AUTH;
   const userId = auth.currentUser?.uid;
   const formScrollRef = useRef<any>(null);
@@ -415,6 +416,17 @@ const NoteList = ({ navigation }: NoteListProps) => {
       formScrollContent: {
         flexGrow: 1,
       },
+      formToggleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 2,
+      },
+      formToggleText: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: colors.danger,
+      },
       emptyState: {
         backgroundColor: colors.surface,
         borderRadius: ui.radius.lg,
@@ -486,12 +498,23 @@ const NoteList = ({ navigation }: NoteListProps) => {
       <SafeAreaView style={styles.safeArea}>
         <GestureHandlerRootView style={styles.container}>
           <View style={styles.inputSection}>
-            <ScrollView
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={styles.formScrollContent}
-              ref={formScrollRef}
-            >
-              <View style={styles.formCard}>
+            <View style={styles.formCard}>
+              <TouchableOpacity style={styles.formToggleRow} onPress={() => setFormExpanded(p => !p)}>
+                <MaterialCommunityIcons
+                  name={formExpanded ? 'chevron-up-circle' : 'chevron-down-circle'}
+                  size={20}
+                  color={colors.danger}
+                />
+                <Text style={styles.formToggleText}>
+                  {formExpanded ? 'Hide note form' : 'New note'}
+                </Text>
+              </TouchableOpacity>
+              {formExpanded && (
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.formScrollContent}
+                ref={formScrollRef}
+              >
             {Platform.OS === 'ios' ? (
               <CustomDropdown
                 selectedValue={category}
@@ -605,8 +628,9 @@ const NoteList = ({ navigation }: NoteListProps) => {
                 </Text>
               </TouchableOpacity>
             </View>
-              </View>
-            </ScrollView>
+              </ScrollView>
+              )}
+            </View>
           </View>
           <View style={styles.stickyFilterContainer}>
             <Text style={styles.helperText}>

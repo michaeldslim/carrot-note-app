@@ -39,8 +39,8 @@ const NoteItem: React.FC<NoteItemProps> = ({
   const styles = useMemo(() => StyleSheet.create({
     rowContainer: {
       width: '100%',
-      marginBottom: 12,
-      marginTop: 4,
+      marginBottom: 6,
+      marginTop: 2,
     },
     container: {
       flex: 1,
