@@ -109,9 +109,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.mike008.reactnativetodoapp'
+    namespace 'com.mike008.carrotnote'
     defaultConfig {
-        applicationId 'com.mike008.reactnativetodoapp'
+        applicationId 'com.mike008.carrotnote'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

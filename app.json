@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Carrot note",
-    "slug": "react-native-todo-app",
+    "slug": "carrotnote",
     "scheme": "carrotnote",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,14 +14,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mike008.reactnativetodoapp"
+      "bundleIdentifier": "com.mike008.carrotnote"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.mike008.reactnativetodoapp"
+      "package": "com.mike008.carrotnote"
     },
     "web": {
       "favicon": "./assets/favicon.png"

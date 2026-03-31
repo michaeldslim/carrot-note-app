@@ -1,4 +1,4 @@
-package com.mike008.reactnativetodoapp
+package com.mike008.carrotnote
 
 import android.os.Build
 import android.os.Bundle
