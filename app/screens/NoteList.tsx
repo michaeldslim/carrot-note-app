@@ -38,6 +38,8 @@ import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { getShadow, ui } from '../theme/ui';
 import { useTheme } from '../theme/ThemeContext';
+import CalendarModal from '../components/calendarModal/CalendarModal';
+import DateRangePicker from '../components/dateRangePicker/DateRangePicker';
 
 type NoteListProps = NativeStackScreenProps<RootStackList, 'List'>;
 
@@ -53,6 +55,9 @@ const NoteList = ({ navigation }: NoteListProps) => {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [categories, setCategories] = useState<string[]>(['Select an option']);
   const [isAdding, setIsAdding] = useState<boolean>(false);
+  const [calendarVisible, setCalendarVisible] = useState<boolean>(false);
+  const [startDate, setStartDate] = useState<string | undefined>(undefined);
+  const [endDate, setEndDate] = useState<string | undefined>(undefined);
   const auth = FIREBASE_AUTH;
   const userId = auth.currentUser?.uid;
   const formScrollRef = useRef<any>(null);
@@ -124,6 +129,8 @@ const NoteList = ({ navigation }: NoteListProps) => {
           createdAt: new Date().toISOString(),
           category,
           userId: userId,
+          startDate: startDate,
+          endDate: endDate,
         };
         await addNote(noteItem);
         const fetchedNotes = await fetchNotes(userId);
@@ -132,6 +139,8 @@ const NoteList = ({ navigation }: NoteListProps) => {
         setTitle('');
         setShowDetails(false);
         setCategory('Select an option');
+        setStartDate(undefined);
+        setEndDate(undefined);
       } catch (error) {
         if (error instanceof Error) {
           Alert.alert('Error', `Failed to add note: ${error.message}`);
@@ -429,6 +438,45 @@ const NoteList = ({ navigation }: NoteListProps) => {
     });
   }, [colors]);
 
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity
+            onPress={() => setCalendarVisible(true)}
+            style={{
+              paddingHorizontal: 10,
+              paddingVertical: 7,
+              backgroundColor: colors.surfaceSoft,
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 99,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <MaterialCommunityIcons name="calendar-month" size={16} color={colors.primaryDark} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Settings')}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 7,
+              backgroundColor: colors.surfaceSoft,
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 99,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ color: colors.primaryDark, fontSize: 13, fontWeight: '700' }}>⚙ Settings</Text>
+          </TouchableOpacity>
+        </View>
+      ),
+    });
+  }, [navigation, colors, setCalendarVisible]);
+
   return (
     <KeyboardAvoidingView
       behavior={'padding'}
@@ -534,6 +582,13 @@ const NoteList = ({ navigation }: NoteListProps) => {
                 }}
               />
             ) : null}
+            <DateRangePicker
+              startDate={startDate}
+              endDate={endDate}
+              disabled={title.trim().length < 3}
+              onConfirm={(s, e) => { setStartDate(s); setEndDate(e); }}
+              onClear={() => { setStartDate(undefined); setEndDate(undefined); }}
+            />
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={[
@@ -620,6 +675,12 @@ const NoteList = ({ navigation }: NoteListProps) => {
           </View>
         </GestureHandlerRootView>
       </SafeAreaView>
+      <CalendarModal
+        visible={calendarVisible}
+        notes={notes}
+        onClose={() => setCalendarVisible(false)}
+        onNotePress={(note) => navigation.navigate('Detail', { noteItem: note })}
+      />
     </KeyboardAvoidingView>
   );
 };

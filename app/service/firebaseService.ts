@@ -11,6 +11,7 @@ import {
   doc,
   updateDoc,
   deleteDoc,
+  deleteField,
   query,
   where,
 } from 'firebase/firestore';
@@ -43,6 +44,8 @@ export const fetchNotes = async (userId: string): Promise<Note[]> => {
         category:
           typeof data.category === 'string' ? (data.category as string) : undefined,
         userId: typeof data.userId === 'string' ? (data.userId as string) : undefined,
+        startDate: typeof data.startDate === 'string' ? data.startDate : undefined,
+        endDate: typeof data.endDate === 'string' ? data.endDate : undefined,
       };
     });
 
@@ -63,10 +66,17 @@ export const addNote = async (note: Omit<Note, 'id'>) => {
 
 export const updateNote = async (
   id: string,
-  updates: Partial<Pick<Note, 'title' | 'note'>>,
+  updates: Partial<Pick<Note, 'title' | 'note' | 'startDate' | 'endDate'>>,
 ) => {
   const editDoc = doc(FIRESTORE_DB, 'notes', id);
-  await updateDoc(editDoc, updates);
+  const payload: Record<string, any> = { ...updates };
+  if ('startDate' in updates && updates.startDate === undefined) {
+    payload.startDate = deleteField();
+  }
+  if ('endDate' in updates && updates.endDate === undefined) {
+    payload.endDate = deleteField();
+  }
+  await updateDoc(editDoc, payload);
 };
 
 export const toggleStatus = async (id: string, completed: boolean) => {

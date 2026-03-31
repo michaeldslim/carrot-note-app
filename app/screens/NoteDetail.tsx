@@ -25,6 +25,7 @@ import { NoteUpdateButton } from '../components/noteUpdateButton';
 import { NoteActionButton } from '../components/noteActionButton';
 import { getShadow, ui } from '../theme/ui';
 import { useTheme } from '../theme/ThemeContext';
+import DateRangePicker from '../components/dateRangePicker/DateRangePicker';
 
 type NoteDetailProps = NativeStackScreenProps<RootStackList, 'Detail'>;
 
@@ -34,6 +35,8 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
 
   const [editTitle, setEditTitle] = useState<string>(noteItem.title ?? '');
   const [editNote, setEditNote] = useState<string>(noteItem.note);
+  const [editStartDate, setEditStartDate] = useState<string | undefined>(noteItem.startDate);
+  const [editEndDate, setEditEndDate] = useState<string | undefined>(noteItem.endDate);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
   const styles = useMemo(() => StyleSheet.create({
@@ -180,6 +183,8 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
     await updateNote(noteItem.id, {
       title: editTitle.trim() || undefined,
       note: editNote,
+      startDate: editStartDate,
+      endDate: editEndDate,
     });
     navigation.goBack();
   };
@@ -212,7 +217,10 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
   const normalizedOriginalTitle = (noteItem.title ?? '').trim();
   const normalizedCurrentTitle = editTitle.trim();
   const isDisabled =
-    editNote === noteItem.note && normalizedCurrentTitle === normalizedOriginalTitle;
+    editNote === noteItem.note &&
+    normalizedCurrentTitle === normalizedOriginalTitle &&
+    editStartDate === noteItem.startDate &&
+    editEndDate === noteItem.endDate;
 
   const commonButtonStyles = [styles.button, styles.buttonText];
 
@@ -245,6 +253,12 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
           multiline={true}
           numberOfLines={3}
           textAlignVertical="top"
+        />
+        <DateRangePicker
+          startDate={editStartDate}
+          endDate={editEndDate}
+          onConfirm={(s, e) => { setEditStartDate(s); setEditEndDate(e); }}
+          onClear={() => { setEditStartDate(undefined); setEditEndDate(undefined); }}
         />
         <View style={styles.buttonContainer}>
           <NoteUpdateButton

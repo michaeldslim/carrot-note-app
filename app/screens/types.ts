@@ -11,4 +11,6 @@ export interface Note {
   createdAt: string;
   category?: string;
   userId?: string;
+  startDate?: string;
+  endDate?: string;
 }

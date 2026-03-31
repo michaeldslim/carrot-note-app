@@ -4,7 +4,7 @@
  the terms of the GNU General Public License v3.
 */
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { Note } from './types';
 import { IconButton } from 'react-native-paper';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -33,12 +33,11 @@ const NoteItem: React.FC<NoteItemProps> = ({
 }) => {
   const { colors } = useTheme();
   const translateX = useSharedValue(0);
-  const itemHeight = useSharedValue(50);
+  const itemHeight = useSharedValue<number | 'auto'>('auto');
   const [isSwipeOpen, setIsSwipeOpen] = useState(false);
 
   const styles = useMemo(() => StyleSheet.create({
     rowContainer: {
-      flex: 1,
       width: '100%',
       marginBottom: 12,
       marginTop: 4,
@@ -100,6 +99,21 @@ const NoteItem: React.FC<NoteItemProps> = ({
     oldNote: {
       borderColor: colors.accent,
       backgroundColor: colors.surfaceSoft,
+    },
+    expiredNote: {
+      borderColor: colors.danger,
+      backgroundColor: colors.surfaceSoft,
+    },
+    dateLabel: {
+      fontSize: 11,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+    expiredLabel: {
+      fontSize: 11,
+      color: colors.danger,
+      fontWeight: '700',
+      marginTop: 2,
     },
   }), [colors]);
 
@@ -169,22 +183,24 @@ const NoteItem: React.FC<NoteItemProps> = ({
     };
   });
 
-  const isOlderThan3Days = () => {
+  const isExpired = (): boolean => {
     try {
-      const now = new Date();
-      const createdDate = new Date(note.createdAt);
-      const daysDifference =
-        (now.getTime() - createdDate.getTime()) / (1000 * 3600 * 24);
-      return daysDifference > 3;
-    } catch (error) {
-      if (error instanceof Error) {
-        Alert.alert('Error', `Checking date: ${error.message}`);
-      } else {
-        Alert.alert('Error', 'An unknown error occurred');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (note.endDate) {
+        const end = new Date(note.endDate);
+        end.setHours(0, 0, 0, 0);
+        return today > end;
       }
+      const createdDate = new Date(note.createdAt);
+      const daysDifference = (today.getTime() - createdDate.getTime()) / (1000 * 3600 * 24);
+      return daysDifference > 3;
+    } catch {
       return false;
     }
   };
+
+  const expired = isExpired();
 
   const displayTitle =
     note.title && note.title.trim().length > 0 ? note.title : note.note;
@@ -195,20 +211,31 @@ const NoteItem: React.FC<NoteItemProps> = ({
         <GestureDetector gesture={gesture}>
           <Animated.View style={[styles.swipeableContent, rStyle]}>
             <TouchableOpacity 
-              style={[styles.innerContainer, isOlderThan3Days() && styles.oldNote]}
+              style={[
+                styles.innerContainer,
+                expired && note.endDate ? styles.expiredNote : expired ? styles.oldNote : null,
+              ]}
               onPress={onPress}
               activeOpacity={0.7}
             >
-              <Text
-                style={[
-                  styles.noteText,
-                  note.completed ? styles.completed : styles.notCompleted,
-                ]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {displayTitle}
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[
+                    styles.noteText,
+                    note.completed ? styles.completed : styles.notCompleted,
+                  ]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {displayTitle}
+                </Text>
+                {note.startDate && (
+                  <Text style={expired && note.endDate ? styles.expiredLabel : styles.dateLabel}>
+                    {expired && note.endDate ? '⚠ Expired · ' : ''}
+                    {note.startDate.slice(0, 10)}{note.endDate && note.endDate !== note.startDate ? ` → ${note.endDate.slice(0, 10)}` : ''}
+                  </Text>
+                )}
+              </View>
             </TouchableOpacity>
           </Animated.View>
         </GestureDetector>
