@@ -7,4 +7,8 @@ module.exports = {
   preset: 'jest-expo',
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  moduleNameMapper: {
+    '@react-native-async-storage/async-storage':
+      require.resolve('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+  },
 };
