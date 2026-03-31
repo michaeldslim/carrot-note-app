@@ -61,8 +61,8 @@ const NoteList = ({ navigation }: NoteListProps) => {
   const [formExpanded, setFormExpanded] = useState<boolean>(false);
   const auth = FIREBASE_AUTH;
   const userId = auth.currentUser?.uid;
-  const formScrollRef = useRef<any>(null);
   const detailsInputRef = useRef<any>(null);
+  const formScrollRef = useRef<ScrollView>(null);
 
   const filterNotes = useCallback(() => {
     if (selectedCategory === 'All') {
@@ -498,6 +498,11 @@ const NoteList = ({ navigation }: NoteListProps) => {
       <SafeAreaView style={styles.safeArea}>
         <GestureHandlerRootView style={styles.container}>
           <View style={styles.inputSection}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.formScrollContent}
+              ref={formScrollRef}
+            >
             <View style={styles.formCard}>
               <TouchableOpacity style={styles.formToggleRow} onPress={() => setFormExpanded(p => !p)}>
                 <MaterialCommunityIcons
@@ -510,11 +515,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
                 </Text>
               </TouchableOpacity>
               {formExpanded && (
-              <ScrollView
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={styles.formScrollContent}
-                ref={formScrollRef}
-              >
+              <View>
             {Platform.OS === 'ios' ? (
               <CustomDropdown
                 selectedValue={category}
@@ -628,9 +629,10 @@ const NoteList = ({ navigation }: NoteListProps) => {
                 </Text>
               </TouchableOpacity>
             </View>
-              </ScrollView>
+              </View>
               )}
             </View>
+            </ScrollView>
           </View>
           <View style={styles.stickyFilterContainer}>
             <Text style={styles.helperText}>
