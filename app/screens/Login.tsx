@@ -294,7 +294,8 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    paddingVertical: ui.spacing.xl * 2,
   },
   container: {
     marginHorizontal: 16,

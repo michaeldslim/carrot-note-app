@@ -19,7 +19,7 @@ import {
   Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   fetchNotes,
@@ -54,6 +54,8 @@ const NoteList = ({ navigation }: NoteListProps) => {
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const auth = FIREBASE_AUTH;
   const userId = auth.currentUser?.uid;
+  const formScrollRef = useRef<any>(null);
+  const detailsInputRef = useRef<any>(null);
 
   const filterNotes = useCallback(() => {
     if (selectedCategory === 'All') {
@@ -165,14 +167,20 @@ const NoteList = ({ navigation }: NoteListProps) => {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={'padding'}
       style={styles.keyboardAvoidingView}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 60}
     >
       <SafeAreaView style={styles.safeArea}>
         <GestureHandlerRootView style={styles.container}>
           <View style={styles.inputSection}>
-            <View style={styles.formCard}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentContainerStyle={styles.formScrollContent}
+              ref={formScrollRef}
+            >
+              <View style={styles.formCard}>
             {Platform.OS === 'ios' ? (
               <CustomDropdown
                 selectedValue={category}
@@ -221,24 +229,27 @@ const NoteList = ({ navigation }: NoteListProps) => {
                 });
               }}
             >
-              <View style={styles.detailsToggleContent}>
-                <MaterialCommunityIcons
-                  name={showDetails ? 'chevron-up-circle' : 'chevron-down-circle'}
-                  size={16}
-                  color={ui.colors.danger}
-                />
-                <Text
-                  style={[
-                    styles.detailsToggleText,
-                    category === 'Select an option' && styles.detailsToggleTextDisabled,
-                  ]}
-                >
-                  {showDetails ? 'Hide details' : 'Add details'}
-                </Text>
-              </View>
+              {title.trim().length >= 3 ? (
+                <View style={styles.detailsToggleContent}>
+                  <MaterialCommunityIcons
+                    name={showDetails ? 'chevron-up-circle' : 'chevron-down-circle'}
+                    size={16}
+                    color={ui.colors.danger}
+                  />
+                  <Text
+                    style={[
+                      styles.detailsToggleText,
+                      category === 'Select an option' && styles.detailsToggleTextDisabled,
+                    ]}
+                  >
+                    {showDetails ? 'Hide details' : 'Add details'}
+                  </Text>
+                </View>
+              ) : null}              
             </TouchableOpacity>
-            {showDetails ? (
+            {title.trim().length >= 3 && showDetails ? (
               <TextInput
+                ref={detailsInputRef}
                 style={
                   category !== 'Select an option'
                     ? styles.activeInput
@@ -253,6 +264,11 @@ const NoteList = ({ navigation }: NoteListProps) => {
                 textAlignVertical="top"
                 editable={category !== 'Select an option'}
                 placeholderTextColor={ui.colors.textMuted}
+                onFocus={() => {
+                  setTimeout(() => {
+                    formScrollRef.current?.scrollToEnd({ animated: true });
+                  }, 150);
+                }}
               />
             ) : null}
             <View style={styles.buttonContainer}>
@@ -271,7 +287,8 @@ const NoteList = ({ navigation }: NoteListProps) => {
                 </Text>
               </TouchableOpacity>
             </View>
-            </View>
+              </View>
+            </ScrollView>
           </View>
           <View style={styles.stickyFilterContainer}>
             <Text style={styles.helperText}>
@@ -327,9 +344,9 @@ const NoteList = ({ navigation }: NoteListProps) => {
               showsVerticalScrollIndicator={true}
               ListEmptyComponent={
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateTitle}>No todos yet</Text>
+                  <Text style={styles.emptyStateTitle}>No notes yet</Text>
                   <Text style={styles.emptyStateText}>
-                    Add your first todo above to get started.
+                    Add your first note above to get started.
                   </Text>
                 </View>
               }
@@ -367,6 +384,8 @@ const styles = StyleSheet.create({
     borderRadius: ui.radius.lg,
     padding: ui.spacing.md,
     ...shadow,
+    overflow: 'visible',
+    elevation: Platform.OS === 'android' ? 2 : shadow.elevation,
   },
   listContainer: {
     flex: 1,
@@ -571,6 +590,9 @@ const styles = StyleSheet.create({
   },
   detailsToggleTextDisabled: {
     color: ui.colors.textMuted,
+  },
+  formScrollContent: {
+    flexGrow: 1,
   },
   emptyState: {
     backgroundColor: ui.colors.surface,

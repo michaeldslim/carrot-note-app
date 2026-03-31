@@ -37,12 +37,7 @@ const Settings = () => {
             style={styles.scrollView}
             contentContainerStyle={styles.contentContainer}
           >
-            <View style={styles.pageHeader}>
-              <Text style={styles.pageTitle}>Settings</Text>
-              <Text style={styles.pageSubtitle}>Manage your account and preferences</Text>
-            </View>
             {!isGoogleUser ? <PasswordManager /> : null}
-            <Text style={styles.sectionTitle}>Categories</Text>
             <CategoryManager />
           </ScrollView>
           <Logout />

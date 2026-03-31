@@ -159,7 +159,7 @@ export const CategoryManager = () => {
     <View style={styles.section}>
       <Text style={styles.subtitle}>Add New Category</Text>
       <Text style={styles.instructions}>
-        Enter categories separated by commas (e.g., Work, Personal, Shopping)
+        Enter categories separated by commas (e.g., Work, Ideas)
       </Text>
       <TextInput
         style={styles.input}
@@ -259,6 +259,7 @@ const styles = StyleSheet.create({
     ...ui.typography.body,
     color: ui.colors.textSecondary,
     marginBottom: 15,
+    fontSize: 13,
   },
   input: {
     borderWidth: 1,

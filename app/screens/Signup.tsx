@@ -187,7 +187,6 @@ const Signup: React.FC<NoteListProps> = ({ navigation }) => {
           </View>
           <View style={styles.titleWrap}>
             <Text style={styles.title}>Create your account</Text>
-            <Text style={styles.subtitle}>Start organizing your notes with clarity</Text>
           </View>
           {error &&
             (error.startsWith(
@@ -285,7 +284,8 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    paddingVertical: ui.spacing.xl * 2,
   },
   container: {
     marginHorizontal: 16,
