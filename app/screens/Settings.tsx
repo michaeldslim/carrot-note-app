@@ -3,7 +3,7 @@
  This software is free to use, modify, and share under 
  the terms of the GNU General Public License v3.
 */
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Platform,
   KeyboardAvoidingView,
@@ -12,18 +12,85 @@ import {
   StyleSheet,
   View,
   Text,
+  TouchableOpacity,
 } from 'react-native';
 import { CategoryManager } from '../components/categoryManager';
 import { PasswordManager } from '../components/passwordManager';
 import Logout from './Logout';
 import { ui } from '../theme/ui';
+import { useTheme } from '../theme/ThemeContext';
+import { ThemeName, THEME_LABELS } from '../theme/themes';
 import { FIREBASE_AUTH } from '../../firebaseConfig';
 
 const Settings = () => {
+  const { colors, themeName, setTheme } = useTheme();
+  const themeNames: ThemeName[] = ['light', 'darkGreen', 'darkTeal'];
   const isGoogleUser =
     FIREBASE_AUTH.currentUser?.providerData?.some(
       (provider) => provider.providerId === 'google.com',
     ) ?? false;
+
+  const styles = useMemo(() => StyleSheet.create({
+    keyboardAvoidingView: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    container: {
+      flex: 1,
+      justifyContent: 'space-between',
+    },
+    scrollView: {
+      flex: 1,
+    },
+    contentContainer: {
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+    },
+    themeCard: {
+      paddingVertical: 18,
+      paddingHorizontal: 14,
+      backgroundColor: colors.surface,
+      borderRadius: ui.radius.lg,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    themeTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      marginBottom: 14,
+      color: colors.textPrimary,
+    },
+    themeRow: {
+      flexDirection: 'row',
+      gap: 10,
+    },
+    themeButton: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: ui.radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSoft,
+    },
+    themeButtonActive: {
+      borderColor: colors.primary,
+      backgroundColor: colors.surface,
+    },
+    themeButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    themeButtonTextActive: {
+      color: colors.primaryDark,
+    },
+  }), [colors]);
 
   return (
     <KeyboardAvoidingView
@@ -37,6 +104,22 @@ const Settings = () => {
             style={styles.scrollView}
             contentContainerStyle={styles.contentContainer}
           >
+            <View style={styles.themeCard}>
+              <Text style={styles.themeTitle}>Theme</Text>
+              <View style={styles.themeRow}>
+                {themeNames.map((name) => (
+                  <TouchableOpacity
+                    key={name}
+                    style={[styles.themeButton, themeName === name && styles.themeButtonActive]}
+                    onPress={() => setTheme(name)}
+                  >
+                    <Text style={[styles.themeButtonText, themeName === name && styles.themeButtonTextActive]}>
+                      {THEME_LABELS[name]}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
             {!isGoogleUser ? <PasswordManager /> : null}
             <CategoryManager />
           </ScrollView>
@@ -46,46 +129,5 @@ const Settings = () => {
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  keyboardAvoidingView: {
-    flex: 1,
-    backgroundColor: ui.colors.background,
-  },
-  safeArea: {
-    flex: 1,
-    backgroundColor: ui.colors.background,
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-  },
-  pageHeader: {
-    marginBottom: 8,
-  },
-  pageTitle: {
-    ...ui.typography.title,
-    color: ui.colors.textPrimary,
-    fontSize: 30,
-  },
-  pageSubtitle: {
-    ...ui.typography.subtitle,
-    color: ui.colors.textSecondary,
-  },
-  sectionTitle: {
-    marginTop: 10,
-    marginBottom: 8,
-    color: ui.colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '700',
-  },
-});
 
 export default Settings;

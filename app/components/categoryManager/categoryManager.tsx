@@ -3,7 +3,7 @@
  This software is free to use, modify, and share under 
  the terms of the GNU General Public License v3.
 */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,7 +20,8 @@ import {
   updateCategory,
   deleteCategory,
 } from '../../service/firebaseService';
-import { shadow, ui } from '../../theme/ui';
+import { getShadow, ui } from '../../theme/ui';
+import { useTheme } from '../../theme/ThemeContext';
 
 export const CategoryManager = () => {
   const [newCategory, setNewCategory] = useState<string>('');
@@ -28,6 +29,103 @@ export const CategoryManager = () => {
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editedCategoryText, setEditedCategoryText] = useState<string>('');
   const userId = FIREBASE_AUTH.currentUser?.uid;
+  const { colors } = useTheme();
+  const styles = useMemo(() => StyleSheet.create({
+    section: {
+      paddingVertical: 18,
+      paddingHorizontal: 14,
+      backgroundColor: colors.surface,
+      borderRadius: ui.radius.lg,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...getShadow(colors.shadowColor),
+    },
+    subtitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      marginBottom: 15,
+      color: colors.textPrimary,
+    },
+    instructions: {
+      ...ui.typography.body,
+      color: colors.textSecondary,
+      marginBottom: 15,
+      fontSize: 13,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: ui.radius.md,
+      padding: 12,
+      marginBottom: 15,
+      backgroundColor: colors.surface,
+      color: colors.textPrimary,
+    },
+    button: {
+      backgroundColor: colors.primary,
+      paddingVertical: 10,
+      paddingHorizontal: 15,
+      borderRadius: ui.radius.md,
+      marginTop: 10,
+    },
+    buttonDisabled: {
+      backgroundColor: colors.disabled,
+    },
+    buttonText: {
+      color: colors.surface,
+      textAlign: 'center',
+      ...ui.typography.button,
+    },
+    buttonTextDisabled: {
+      opacity: 0.7,
+    },
+    categoriesTitle: {
+      marginTop: 30,
+    },
+    categoriesList: {
+      maxHeight: 300,
+    },
+    categoryItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    categoryText: {
+      flex: 1,
+      fontSize: 16,
+      color: colors.textPrimary,
+    },
+    editInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: ui.radius.sm,
+      padding: 8,
+      marginRight: 10,
+      color: colors.textPrimary,
+    },
+    smallButton: {
+      backgroundColor: colors.primary,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+      borderRadius: ui.radius.sm,
+      marginLeft: 10,
+    },
+    deleteButton: {
+      backgroundColor: colors.danger,
+    },
+    cancelButton: {
+      backgroundColor: colors.textMuted,
+    },
+    smallButtonText: {
+      color: colors.surface,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+  }), [colors]);
 
   const loadCategories = useCallback(async () => {
     if (userId) {
@@ -166,7 +264,7 @@ export const CategoryManager = () => {
         placeholder="New Category"
         value={newCategory}
         onChangeText={setNewCategory}
-        placeholderTextColor={ui.colors.textMuted}
+        placeholderTextColor={colors.textMuted}
       />
       <TouchableOpacity
         style={[
@@ -199,7 +297,7 @@ export const CategoryManager = () => {
                   value={editedCategoryText}
                   onChangeText={setEditedCategoryText}
                   autoFocus
-                  placeholderTextColor={ui.colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                 />
                 <TouchableOpacity
                   style={styles.smallButton}
@@ -238,99 +336,3 @@ export const CategoryManager = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  section: {
-    paddingVertical: 18,
-    paddingHorizontal: 14,
-    backgroundColor: ui.colors.surface,
-    borderRadius: ui.radius.lg,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    ...shadow,
-  },
-  subtitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 15,
-    color: ui.colors.textPrimary,
-  },
-  instructions: {
-    ...ui.typography.body,
-    color: ui.colors.textSecondary,
-    marginBottom: 15,
-    fontSize: 13,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    borderRadius: ui.radius.md,
-    padding: 12,
-    marginBottom: 15,
-    backgroundColor: ui.colors.surface,
-    color: ui.colors.textPrimary,
-  },
-  button: {
-    backgroundColor: ui.colors.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: ui.radius.md,
-    marginTop: 10,
-  },
-  buttonDisabled: {
-    backgroundColor: ui.colors.disabled,
-  },
-  buttonText: {
-    color: ui.colors.surface,
-    textAlign: 'center',
-    ...ui.typography.button,
-  },
-  buttonTextDisabled: {
-    opacity: 0.7,
-  },
-  categoriesTitle: {
-    marginTop: 30,
-  },
-  categoriesList: {
-    maxHeight: 300,
-  },
-  categoryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: ui.colors.border,
-  },
-  categoryText: {
-    flex: 1,
-    fontSize: 16,
-    color: ui.colors.textPrimary,
-  },
-  editInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    borderRadius: ui.radius.sm,
-    padding: 8,
-    marginRight: 10,
-    color: ui.colors.textPrimary,
-  },
-  smallButton: {
-    backgroundColor: ui.colors.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: ui.radius.sm,
-    marginLeft: 10,
-  },
-  deleteButton: {
-    backgroundColor: ui.colors.danger,
-  },
-  cancelButton: {
-    backgroundColor: ui.colors.textMuted,
-  },
-  smallButtonText: {
-    color: ui.colors.surface,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-});

@@ -3,7 +3,7 @@
  This software is free to use, modify, and share under 
  the terms of the GNU General Public License v3.
 */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,12 +13,61 @@ import {
   StyleSheet,
 } from 'react-native';
 import { changePassword } from '../../service/firebaseService';
-import { shadow, ui } from '../../theme/ui';
+import { getShadow, ui } from '../../theme/ui';
+import { useTheme } from '../../theme/ThemeContext';
 
 export const PasswordManager = () => {
   const [currentPassword, setCurrentPassword] = useState<string>('');
   const [newPassword, setNewPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const { colors } = useTheme();
+  const styles = useMemo(() => StyleSheet.create({
+    section: {
+      paddingVertical: 18,
+      paddingHorizontal: 14,
+      backgroundColor: colors.surface,
+      borderRadius: ui.radius.lg,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...getShadow(colors.shadowColor),
+    },
+    subtitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      marginBottom: 10,
+      color: colors.textPrimary,
+    },
+    instructions: {
+      ...ui.typography.body,
+      color: colors.textSecondary,
+      marginBottom: 14,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: ui.radius.md,
+      padding: 12,
+      marginBottom: 15,
+      backgroundColor: colors.surface,
+      color: colors.textPrimary,
+    },
+    button: {
+      backgroundColor: colors.primary,
+      paddingVertical: 10,
+      paddingHorizontal: 15,
+      borderRadius: ui.radius.md,
+      alignItems: 'center',
+    },
+    buttonDisabled: {
+      backgroundColor: colors.disabled,
+      opacity: 0.7,
+    },
+    buttonText: {
+      color: colors.surface,
+      ...ui.typography.button,
+    },
+  }), [colors]);
 
   const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
@@ -49,7 +98,7 @@ export const PasswordManager = () => {
         secureTextEntry
         value={currentPassword}
         onChangeText={setCurrentPassword}
-        placeholderTextColor={ui.colors.textMuted}
+        placeholderTextColor={colors.textMuted}
       />
       <TextInput
         style={styles.input}
@@ -57,7 +106,7 @@ export const PasswordManager = () => {
         secureTextEntry
         value={newPassword}
         onChangeText={setNewPassword}
-        placeholderTextColor={ui.colors.textMuted}
+        placeholderTextColor={colors.textMuted}
       />
       <TextInput
         style={styles.input}
@@ -65,7 +114,7 @@ export const PasswordManager = () => {
         secureTextEntry
         value={confirmPassword}
         onChangeText={setConfirmPassword}
-        placeholderTextColor={ui.colors.textMuted}
+        placeholderTextColor={colors.textMuted}
       />
       <TouchableOpacity 
         style={[
@@ -80,51 +129,3 @@ export const PasswordManager = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  section: {
-    paddingVertical: 18,
-    paddingHorizontal: 14,
-    backgroundColor: ui.colors.surface,
-    borderRadius: ui.radius.lg,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    ...shadow,
-  },
-  subtitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 10,
-    color: ui.colors.textPrimary,
-  },
-  instructions: {
-    ...ui.typography.body,
-    color: ui.colors.textSecondary,
-    marginBottom: 14,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    borderRadius: ui.radius.md,
-    padding: 12,
-    marginBottom: 15,
-    backgroundColor: ui.colors.surface,
-    color: ui.colors.textPrimary,
-  },
-  button: {
-    backgroundColor: ui.colors.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: ui.radius.md,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: ui.colors.disabled,
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: ui.colors.surface,
-    ...ui.typography.button,
-  },
-});

@@ -6,7 +6,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import React from 'react';
+import React, { useMemo } from 'react';
 import NoteList from '../screens/NoteList';
 import Loading from '../screens/Loading';
 import NoteDetail from '../screens/NoteDetail';
@@ -16,6 +16,7 @@ import Signup from '../screens/Signup';
 import Settings from '../screens/Settings';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { ui } from '../theme/ui';
+import { useTheme } from '../theme/ThemeContext';
 
 export type RootStackList = {
   Loading: undefined;
@@ -29,13 +30,34 @@ export type RootStackList = {
 
 const Stack = createNativeStackNavigator<RootStackList>();
 
-const SettingsButton: React.FC<{ onPress: () => void }> = ({ onPress }) => (
-  <TouchableOpacity onPress={onPress} style={styles.button}>
-    <Text style={styles.buttonText}>⚙ Settings</Text>
-  </TouchableOpacity>
-);
+const SettingsButton: React.FC<{ onPress: () => void }> = ({ onPress }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => StyleSheet.create({
+    button: {
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      backgroundColor: colors.surfaceSoft,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: ui.radius.pill,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    buttonText: {
+      color: colors.primaryDark,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+  }), [colors]);
+  return (
+    <TouchableOpacity onPress={onPress} style={styles.button}>
+      <Text style={styles.buttonText}>⚙ Settings</Text>
+    </TouchableOpacity>
+  );
+};
 
 const RootNavigator = () => {
+  const { colors } = useTheme();
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
@@ -43,16 +65,16 @@ const RootNavigator = () => {
           screenOptions={{
             headerBackTitleVisible: false,
             headerStyle: {
-              backgroundColor: ui.colors.surface,
+              backgroundColor: colors.surface,
             },
-            headerTintColor: ui.colors.textPrimary,
+            headerTintColor: colors.textPrimary,
             headerTitleStyle: {
               fontSize: 18,
               fontWeight: '700',
-              color: ui.colors.textPrimary,
+              color: colors.textPrimary,
             },
             contentStyle: {
-              backgroundColor: ui.colors.background,
+              backgroundColor: colors.background,
             },
           }}
           initialRouteName="Loading"
@@ -100,23 +122,5 @@ const RootNavigator = () => {
     </GestureHandlerRootView>
   );
 };
-
-const styles = StyleSheet.create({
-  button: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    backgroundColor: ui.colors.surfaceSoft,
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    borderRadius: ui.radius.pill,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: ui.colors.primaryDark,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-});
 
 export default RootNavigator;

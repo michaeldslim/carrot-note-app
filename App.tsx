@@ -5,9 +5,14 @@
 */
 import React from 'react';
 import RootNavigator from './app/navigation/RootNavigator';
+import { ThemeProvider } from './app/theme/ThemeContext';
 
 const App: React.FC = () => {
-  return <RootNavigator />;
+  return (
+    <ThemeProvider>
+      <RootNavigator />
+    </ThemeProvider>
+  );
 };
 
 export default App;

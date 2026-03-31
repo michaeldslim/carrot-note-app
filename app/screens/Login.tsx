@@ -3,7 +3,7 @@
  This software is free to use, modify, and share under 
  the terms of the GNU General Public License v3.
 */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   TextInput,
@@ -28,7 +28,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackList } from '../navigation/RootNavigator';
 import { getAuthErrorMessage } from '../service/firebaseErrors';
-import { shadow, ui } from '../theme/ui';
+import { getShadow, ui } from '../theme/ui';
+import { useTheme } from '../theme/ThemeContext';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
@@ -138,6 +139,160 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
     await promptAsync();
   };
 
+  const { colors } = useTheme();
+
+  const styles = useMemo(() => {
+    const sh = getShadow(colors.shadowColor);
+    return StyleSheet.create({
+      loadingOverlay: {
+        flex: 1,
+        backgroundColor: colors.background,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: ui.spacing.lg,
+      },
+      loadingOverlayText: {
+        marginTop: ui.spacing.md,
+        color: colors.textSecondary,
+        fontSize: 14,
+        textAlign: 'center',
+      },
+      keyboardAvoidingView: {
+        flex: 1,
+        backgroundColor: colors.background,
+      },
+      googlePrimaryButtonText: {
+        color: colors.surface,
+        ...ui.typography.button,
+        fontSize: 14,
+      },
+      googleHint: {
+        marginTop: -4,
+        marginBottom: ui.spacing.md,
+        textAlign: 'center',
+        color: colors.textMuted,
+        fontSize: 12,
+      },
+      dividerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: ui.spacing.md,
+      },
+      dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: colors.border,
+      },
+      dividerText: {
+        marginHorizontal: 10,
+        color: colors.textMuted,
+        fontSize: 12,
+      },
+      manualSection: {
+        marginBottom: ui.spacing.xs,
+      },
+      scrollViewContent: {
+        flexGrow: 1,
+        justifyContent: 'flex-start',
+        paddingVertical: ui.spacing.xl * 2,
+      },
+      container: {
+        marginHorizontal: 16,
+        borderRadius: ui.radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: ui.spacing.xl,
+        backgroundColor: colors.surface,
+        ...sh,
+      },
+      title: {
+        ...ui.typography.title,
+        color: colors.textPrimary,
+        textAlign: 'center',
+      },
+      subtitle: {
+        ...ui.typography.subtitle,
+        color: colors.textSecondary,
+        textAlign: 'center',
+      },
+      titleWrap: {
+        marginBottom: ui.spacing.lg,
+      },
+      errorText: {
+        color: colors.danger,
+        fontSize: 14,
+        textAlign: 'center',
+        marginBottom: ui.spacing.sm,
+      },
+      input: {
+        minHeight: 52,
+        borderColor: colors.border,
+        borderWidth: 1,
+        borderRadius: ui.radius.md,
+        paddingHorizontal: 16,
+        marginBottom: ui.spacing.md,
+        backgroundColor: colors.surface,
+        color: colors.textPrimary,
+      },
+      passwordInputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderColor: colors.border,
+        borderWidth: 1,
+        borderRadius: ui.radius.md,
+        backgroundColor: colors.surface,
+        marginBottom: ui.spacing.md,
+      },
+      passwordInput: {
+        flex: 1,
+        minHeight: 52,
+        paddingHorizontal: 16,
+        color: colors.textPrimary,
+      },
+      disabledButton: {
+        opacity: 0.6,
+      },
+      googlePrimaryButton: {
+        backgroundColor: colors.primary,
+      },
+      manualButton: {
+        backgroundColor: colors.surfaceSoft,
+        borderWidth: 1,
+        borderColor: colors.border,
+      },
+      button: {
+        minHeight: 52,
+        borderRadius: ui.radius.md,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: ui.spacing.sm,
+      },
+      manualButtonText: {
+        color: colors.textPrimary,
+        ...ui.typography.button,
+        fontSize: 14,
+      },
+      link: {
+        marginTop: ui.spacing.xs,
+        alignItems: 'center',
+      },
+      linkText: {
+        color: colors.primaryDark,
+        fontSize: 15,
+        fontWeight: '600',
+        textAlign: 'center',
+      },
+      logoContainer: {
+        alignItems: 'center',
+        marginBottom: ui.spacing.md,
+      },
+      logo: {
+        width: 82,
+        height: 82,
+      },
+    });
+  }, [colors]);
+
   const isDisabled =
     !email.trim() || !password.trim() || isSubmitting || isGoogleSubmitting;
   const isGoogleDisabled = !request || isSubmitting || isGoogleSubmitting;
@@ -145,7 +300,7 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
   if (isGoogleSubmitting) {
     return (
       <View style={styles.loadingOverlay}>
-        <ActivityIndicator size="large" color={ui.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingOverlayText}>Signing you in with Google...</Text>
       </View>
     );
@@ -199,7 +354,7 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
             onChangeText={(e) => setEmail(e.trim())}
             autoCapitalize="none"
             keyboardType="email-address"
-            placeholderTextColor={ui.colors.textMuted}
+            placeholderTextColor={colors.textMuted}
           />
           <View style={styles.passwordInputContainer}>
             <TextInput
@@ -209,12 +364,12 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
               secureTextEntry={!showPassword}
               onChangeText={(e) => setPassword(e.trim())}
               autoCapitalize="none"
-              placeholderTextColor={ui.colors.textMuted}
+              placeholderTextColor={colors.textMuted}
             />
             <IconButton
               icon={showPassword ? 'eye-off' : 'eye'}
               size={20}
-              iconColor={ui.colors.textSecondary}
+              iconColor={colors.textSecondary}
               onPress={() => setShowPassword((prev) => !prev)}
             />
           </View>
@@ -243,154 +398,5 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  loadingOverlay: {
-    flex: 1,
-    backgroundColor: ui.colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: ui.spacing.lg,
-  },
-  loadingOverlayText: {
-    marginTop: ui.spacing.md,
-    color: ui.colors.textSecondary,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-    backgroundColor: ui.colors.background,
-  },
-  googlePrimaryButtonText: {
-    color: ui.colors.surface,
-    ...ui.typography.button,
-    fontSize: 14,
-  },
-  googleHint: {
-    marginTop: -4,
-    marginBottom: ui.spacing.md,
-    textAlign: 'center',
-    color: ui.colors.textMuted,
-    fontSize: 12,
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: ui.spacing.md,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: ui.colors.border,
-  },
-  dividerText: {
-    marginHorizontal: 10,
-    color: ui.colors.textMuted,
-    fontSize: 12,
-  },
-  manualSection: {
-    marginBottom: ui.spacing.xs,
-  },
-  scrollViewContent: {
-    flexGrow: 1,
-    justifyContent: 'flex-start',
-    paddingVertical: ui.spacing.xl * 2,
-  },
-  container: {
-    marginHorizontal: 16,
-    borderRadius: ui.radius.lg,
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    padding: ui.spacing.xl,
-    backgroundColor: ui.colors.surface,
-    ...shadow,
-  },
-  title: {
-    ...ui.typography.title,
-    color: ui.colors.textPrimary,
-    textAlign: 'center',
-  },
-  subtitle: {
-    ...ui.typography.subtitle,
-    color: ui.colors.textSecondary,
-    textAlign: 'center',
-  },
-  titleWrap: {
-    marginBottom: ui.spacing.lg,
-  },
-  errorText: {
-    color: ui.colors.danger,
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: ui.spacing.sm,
-  },
-  input: {
-    minHeight: 52,
-    borderColor: ui.colors.border,
-    borderWidth: 1,
-    borderRadius: ui.radius.md,
-    paddingHorizontal: 16,
-    marginBottom: ui.spacing.md,
-    backgroundColor: ui.colors.surface,
-    color: ui.colors.textPrimary,
-  },
-  passwordInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderColor: ui.colors.border,
-    borderWidth: 1,
-    borderRadius: ui.radius.md,
-    backgroundColor: ui.colors.surface,
-    marginBottom: ui.spacing.md,
-  },
-  passwordInput: {
-    flex: 1,
-    minHeight: 52,
-    paddingHorizontal: 16,
-    color: ui.colors.textPrimary,
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  googlePrimaryButton: {
-    backgroundColor: ui.colors.primary,
-  },
-  manualButton: {
-    backgroundColor: ui.colors.surfaceSoft,
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-  },
-  button: {
-    minHeight: 52,
-    borderRadius: ui.radius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: ui.spacing.sm,
-  },
-  manualButtonText: {
-    color: ui.colors.textPrimary,
-    ...ui.typography.button,
-    fontSize: 14,
-  },
-  link: {
-    marginTop: ui.spacing.xs,
-    alignItems: 'center',
-  },
-  linkText: {
-    color: ui.colors.primaryDark,
-    fontSize: 15,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: ui.spacing.md,
-  },
-  logo: {
-    width: 82,
-    height: 82,
-  },
-});
 
 export default Login;

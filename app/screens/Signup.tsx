@@ -3,7 +3,7 @@
  This software is free to use, modify, and share under 
  the terms of the GNU General Public License v3.
 */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   TextInput,
@@ -25,7 +25,8 @@ import {
 } from 'firebase/auth';
 import { RootStackList } from '../navigation/RootNavigator';
 import { getAuthErrorMessage } from '../service/firebaseErrors';
-import { shadow, ui } from '../theme/ui';
+import { getShadow, ui } from '../theme/ui';
+import { useTheme } from '../theme/ThemeContext';
 
 type NoteListProps = NativeStackScreenProps<RootStackList, 'Signup'>;
 
@@ -172,6 +173,139 @@ const Signup: React.FC<NoteListProps> = ({ navigation }) => {
   const isDisabled =
     !email.trim() || !password.trim() || !confirmPassword.trim() || isSubmitting;
 
+  const { colors } = useTheme();
+
+  const styles = useMemo(() => {
+    const sh = getShadow(colors.shadowColor);
+    return StyleSheet.create({
+      keyboardAvoidingView: {
+        flex: 1,
+        backgroundColor: colors.background,
+      },
+      scrollViewContent: {
+        flexGrow: 1,
+        justifyContent: 'flex-start',
+        paddingVertical: ui.spacing.xl * 2,
+      },
+      container: {
+        marginHorizontal: 16,
+        borderRadius: ui.radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: ui.spacing.xl,
+        backgroundColor: colors.surface,
+        ...sh,
+      },
+      title: {
+        ...ui.typography.title,
+        color: colors.textPrimary,
+        textAlign: 'center',
+      },
+      subtitle: {
+        ...ui.typography.subtitle,
+        color: colors.textSecondary,
+        textAlign: 'center',
+      },
+      titleWrap: {
+        marginBottom: ui.spacing.lg,
+      },
+      errorText: {
+        color: colors.danger,
+        fontSize: 14,
+        textAlign: 'center',
+        marginBottom: ui.spacing.sm,
+      },
+      passwordRuleContainer: {
+        marginBottom: ui.spacing.md,
+        backgroundColor: colors.surfaceSoft,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: ui.radius.md,
+        padding: ui.spacing.md,
+      },
+      passwordRuleTitleText: {
+        color: colors.textPrimary,
+        fontSize: 14,
+        textAlign: 'left',
+        marginBottom: 4,
+        fontWeight: '700',
+      },
+      passwordRuleItemText: {
+        color: colors.textSecondary,
+        fontSize: 12,
+        textAlign: 'left',
+        marginBottom: 2,
+      },
+      input: {
+        minHeight: 52,
+        borderColor: colors.border,
+        borderWidth: 1,
+        borderRadius: ui.radius.md,
+        paddingHorizontal: 16,
+        marginBottom: ui.spacing.md,
+        backgroundColor: colors.surface,
+        color: colors.textPrimary,
+      },
+      passwordInputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderColor: colors.border,
+        borderWidth: 1,
+        borderRadius: ui.radius.md,
+        backgroundColor: colors.surface,
+        marginBottom: ui.spacing.md,
+      },
+      passwordInput: {
+        flex: 1,
+        minHeight: 52,
+        paddingHorizontal: 16,
+        color: colors.textPrimary,
+      },
+      passwordMatchText: {
+        color: colors.success,
+        fontSize: 14,
+        marginBottom: ui.spacing.sm,
+        textAlign: 'center',
+        fontWeight: '600',
+      },
+      disabledButton: {
+        backgroundColor: colors.disabled,
+      },
+      addButton: {
+        backgroundColor: colors.primary,
+      },
+      button: {
+        minHeight: 52,
+        borderRadius: ui.radius.md,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: ui.spacing.sm,
+      },
+      buttonText: {
+        color: colors.surface,
+        ...ui.typography.button,
+      },
+      link: {
+        marginTop: ui.spacing.xs,
+        alignItems: 'center',
+      },
+      linkText: {
+        color: colors.primaryDark,
+        fontSize: 15,
+        fontWeight: '600',
+        textAlign: 'center',
+      },
+      logoContainer: {
+        alignItems: 'center',
+        marginBottom: ui.spacing.md,
+      },
+      logo: {
+        width: 82,
+        height: 82,
+      },
+    });
+  }, [colors]);
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -219,7 +353,7 @@ const Signup: React.FC<NoteListProps> = ({ navigation }) => {
             autoCapitalize="none"
             keyboardType="email-address"
             autoComplete="email"
-            placeholderTextColor={ui.colors.textMuted}
+            placeholderTextColor={colors.textMuted}
           />
           <View style={styles.passwordInputContainer}>
             <TextInput
@@ -229,12 +363,12 @@ const Signup: React.FC<NoteListProps> = ({ navigation }) => {
               secureTextEntry={!showPassword}
               onChangeText={handlePasswordChange}
               autoCapitalize="none"
-              placeholderTextColor={ui.colors.textMuted}
+              placeholderTextColor={colors.textMuted}
             />
             <IconButton
               icon={showPassword ? 'eye-off' : 'eye'}
               size={20}
-              iconColor={ui.colors.textSecondary}
+              iconColor={colors.textSecondary}
               onPress={() => setShowPassword((prev) => !prev)}
             />
           </View>
@@ -246,12 +380,12 @@ const Signup: React.FC<NoteListProps> = ({ navigation }) => {
               secureTextEntry={!showConfirmPassword}
               onChangeText={handleConfirmPasswordChange}
               autoCapitalize="none"
-              placeholderTextColor={ui.colors.textMuted}
+              placeholderTextColor={colors.textMuted}
             />
             <IconButton
               icon={showConfirmPassword ? 'eye-off' : 'eye'}
               size={20}
-              iconColor={ui.colors.textSecondary}
+              iconColor={colors.textSecondary}
               onPress={() => setShowConfirmPassword((prev) => !prev)}
             />
           </View>
@@ -276,133 +410,5 @@ const Signup: React.FC<NoteListProps> = ({ navigation }) => {
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  keyboardAvoidingView: {
-    flex: 1,
-    backgroundColor: ui.colors.background,
-  },
-  scrollViewContent: {
-    flexGrow: 1,
-    justifyContent: 'flex-start',
-    paddingVertical: ui.spacing.xl * 2,
-  },
-  container: {
-    marginHorizontal: 16,
-    borderRadius: ui.radius.lg,
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    padding: ui.spacing.xl,
-    backgroundColor: ui.colors.surface,
-    ...shadow,
-  },
-  title: {
-    ...ui.typography.title,
-    color: ui.colors.textPrimary,
-    textAlign: 'center',
-  },
-  subtitle: {
-    ...ui.typography.subtitle,
-    color: ui.colors.textSecondary,
-    textAlign: 'center',
-  },
-  titleWrap: {
-    marginBottom: ui.spacing.lg,
-  },
-  errorText: {
-    color: ui.colors.danger,
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: ui.spacing.sm,
-  },
-  passwordRuleContainer: {
-    marginBottom: ui.spacing.md,
-    backgroundColor: '#FFF4F4',
-    borderWidth: 1,
-    borderColor: '#F3C8C8',
-    borderRadius: ui.radius.md,
-    padding: ui.spacing.md,
-  },
-  passwordRuleTitleText: {
-    color: ui.colors.textPrimary,
-    fontSize: 14,
-    textAlign: 'left',
-    marginBottom: 4,
-    fontWeight: '700',
-  },
-  passwordRuleItemText: {
-    color: ui.colors.textSecondary,
-    fontSize: 12,
-    textAlign: 'left',
-    marginBottom: 2,
-  },
-  input: {
-    minHeight: 52,
-    borderColor: ui.colors.border,
-    borderWidth: 1,
-    borderRadius: ui.radius.md,
-    paddingHorizontal: 16,
-    marginBottom: ui.spacing.md,
-    backgroundColor: ui.colors.surface,
-    color: ui.colors.textPrimary,
-  },
-  passwordInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderColor: ui.colors.border,
-    borderWidth: 1,
-    borderRadius: ui.radius.md,
-    backgroundColor: ui.colors.surface,
-    marginBottom: ui.spacing.md,
-  },
-  passwordInput: {
-    flex: 1,
-    minHeight: 52,
-    paddingHorizontal: 16,
-    color: ui.colors.textPrimary,
-  },
-  passwordMatchText: {
-    color: ui.colors.success,
-    fontSize: 14,
-    marginBottom: ui.spacing.sm,
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  disabledButton: {
-    backgroundColor: ui.colors.disabled,
-  },
-  addButton: {
-    backgroundColor: ui.colors.primary,
-  },
-  button: {
-    minHeight: 52,
-    borderRadius: ui.radius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: ui.spacing.sm,
-  },
-  buttonText: {
-    color: ui.colors.surface,
-    ...ui.typography.button,
-  },
-  link: {
-    marginTop: ui.spacing.xs,
-    alignItems: 'center',
-  },
-  linkText: {
-    color: ui.colors.primaryDark,
-    fontSize: 15,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: ui.spacing.md,
-  },
-  logo: {
-    width: 82,
-    height: 82,
-  },
-});
 
 export default Signup;

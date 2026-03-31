@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   deleteNote,
   updateNote,
@@ -23,16 +23,158 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackList } from '../navigation/RootNavigator';
 import { NoteUpdateButton } from '../components/noteUpdateButton';
 import { NoteActionButton } from '../components/noteActionButton';
-import { shadow, ui } from '../theme/ui';
+import { getShadow, ui } from '../theme/ui';
+import { useTheme } from '../theme/ThemeContext';
 
 type NoteDetailProps = NativeStackScreenProps<RootStackList, 'Detail'>;
 
 const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
   const { noteItem } = route.params;
+  const { colors } = useTheme();
 
   const [editTitle, setEditTitle] = useState<string>(noteItem.title ?? '');
   const [editNote, setEditNote] = useState<string>(noteItem.note);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+
+  const styles = useMemo(() => StyleSheet.create({
+    scrollContent: {
+      flexGrow: 1,
+      justifyContent: 'center',
+    },
+    container: {
+      marginHorizontal: 16,
+      backgroundColor: colors.surface,
+      borderRadius: ui.radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: ui.spacing.lg,
+      ...getShadow(colors.shadowColor),
+    },
+    formHeader: {
+      marginBottom: ui.spacing.md,
+    },
+    form: {
+      marginVertical: 4,
+      flexDirection: 'column',
+    },
+    title: {
+      ...ui.typography.title,
+      fontSize: 26,
+      color: colors.textPrimary,
+    },
+    subtitle: {
+      ...ui.typography.subtitle,
+      color: colors.textSecondary,
+    },
+    titleInput: {
+      fontSize: 16,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: ui.radius.md,
+      width: '100%',
+      marginBottom: ui.spacing.md,
+      backgroundColor: colors.surface,
+      color: colors.textPrimary,
+    },
+    input: {
+      fontSize: 16,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: ui.radius.md,
+      width: '100%',
+      minHeight: 120,
+      marginBottom: ui.spacing.md,
+      backgroundColor: colors.surface,
+      color: colors.textPrimary,
+    },
+    item: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      backgroundColor: colors.background,
+      padding: 15,
+      borderRadius: 5,
+      marginBottom: 10,
+      width: '100%',
+    },
+    buttonContainer: {
+      marginTop: 4,
+      width: '100%',
+    },
+    button: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 15,
+      marginBottom: 10,
+      borderRadius: ui.radius.md,
+      width: '100%',
+    },
+    buttonText: {
+      color: colors.surface,
+      ...ui.typography.button,
+    } as TextStyle,
+    updateButton: {
+      backgroundColor: colors.primary,
+    },
+    disabledButton: {
+      backgroundColor: colors.disabled,
+    },
+    deleteButton: {
+      backgroundColor: colors.danger,
+    },
+    toggleButton: {
+      backgroundColor: colors.success,
+    },
+    modalContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.overlay,
+    },
+    modalContent: {
+      width: '88%',
+      padding: 20,
+      backgroundColor: colors.surface,
+      borderRadius: ui.radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+    },
+    modalText: {
+      fontSize: 17,
+      marginBottom: 20,
+      textAlign: 'center',
+      color: colors.textPrimary,
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      width: '100%',
+    },
+    modalButtonCancel: {
+      flex: 1,
+      padding: 10,
+      alignItems: 'center',
+      backgroundColor: colors.disabled,
+      borderRadius: ui.radius.md,
+      marginRight: 5,
+    },
+    modalButtonDelete: {
+      flex: 1,
+      padding: 10,
+      alignItems: 'center',
+      backgroundColor: colors.danger,
+      borderRadius: ui.radius.md,
+      marginLeft: 5,
+    },
+    modalButtonText: {
+      color: colors.surface,
+      fontSize: 15,
+      fontWeight: '700',
+    },
+  }), [colors]);
 
   const handleUpdateNote = async () => {
     await updateNote(noteItem.id, {
@@ -98,6 +240,7 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
           value={editNote}
           onChangeText={(text) => setEditNote(text.trimStart())}
           placeholder="Edit note (optional)"
+          placeholderTextColor={colors.textMuted}
           maxLength={200}
           multiline={true}
           numberOfLines={3}
@@ -156,145 +299,5 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
-  container: {
-    marginHorizontal: 16,
-    backgroundColor: ui.colors.surface,
-    borderRadius: ui.radius.lg,
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    padding: ui.spacing.lg,
-    ...shadow,
-  },
-  formHeader: {
-    marginBottom: ui.spacing.md,
-  },
-  form: {
-    marginVertical: 4,
-    flexDirection: 'column',
-  },
-  title: {
-    ...ui.typography.title,
-    fontSize: 26,
-    color: ui.colors.textPrimary,
-  },
-  subtitle: {
-    ...ui.typography.subtitle,
-    color: ui.colors.textSecondary,
-  },
-  titleInput: {
-    fontSize: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    borderRadius: ui.radius.md,
-    width: '100%',
-    marginBottom: ui.spacing.md,
-    backgroundColor: ui.colors.surface,
-    color: ui.colors.textPrimary,
-  },
-  input: {
-    fontSize: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    borderRadius: ui.radius.md,
-    width: '100%',
-    minHeight: 120,
-    marginBottom: ui.spacing.md,
-    backgroundColor: ui.colors.surface,
-    color: ui.colors.textPrimary,
-  },
-  item: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: '#f9f9f9',
-    padding: 15,
-    borderRadius: 5,
-    marginBottom: 10,
-    width: '100%',
-  },
-  buttonContainer: {
-    marginTop: 4,
-    width: '100%',
-  },
-  button: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    marginBottom: 10,
-    borderRadius: ui.radius.md,
-    width: '100%',
-  },
-  buttonText: {
-    color: ui.colors.surface,
-    ...ui.typography.button,
-  } as TextStyle,
-  updateButton: {
-    backgroundColor: ui.colors.primary,
-  },
-  disabledButton: {
-    backgroundColor: ui.colors.disabled,
-  },
-  deleteButton: {
-    backgroundColor: ui.colors.danger,
-  },
-  toggleButton: {
-    backgroundColor: ui.colors.success,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: ui.colors.overlay,
-  },
-  modalContent: {
-    width: '88%',
-    padding: 20,
-    backgroundColor: ui.colors.surface,
-    borderRadius: ui.radius.lg,
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    alignItems: 'center',
-  },
-  modalText: {
-    fontSize: 17,
-    marginBottom: 20,
-    textAlign: 'center',
-    color: ui.colors.textPrimary,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  modalButtonCancel: {
-    flex: 1,
-    padding: 10,
-    alignItems: 'center',
-    backgroundColor: ui.colors.disabled,
-    borderRadius: ui.radius.md,
-    marginRight: 5,
-  },
-  modalButtonDelete: {
-    flex: 1,
-    padding: 10,
-    alignItems: 'center',
-    backgroundColor: ui.colors.danger,
-    borderRadius: ui.radius.md,
-    marginLeft: 5,
-  },
-  modalButtonText: {
-    color: ui.colors.surface,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-});
 
 export default NoteDetail;

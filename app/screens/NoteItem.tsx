@@ -3,12 +3,13 @@
  This software is free to use, modify, and share under 
  the terms of the GNU General Public License v3.
 */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Alert } from 'react-native';
 import { Note } from './types';
 import { IconButton } from 'react-native-paper';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { shadow, ui } from '../theme/ui';
+import { getShadow, ui } from '../theme/ui';
+import { useTheme } from '../theme/ThemeContext';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -30,9 +31,77 @@ const NoteItem: React.FC<NoteItemProps> = ({
   onPress,
   confirmDelete,
 }) => {
+  const { colors } = useTheme();
   const translateX = useSharedValue(0);
   const itemHeight = useSharedValue(50);
   const [isSwipeOpen, setIsSwipeOpen] = useState(false);
+
+  const styles = useMemo(() => StyleSheet.create({
+    rowContainer: {
+      flex: 1,
+      width: '100%',
+      marginBottom: 12,
+      marginTop: 4,
+    },
+    container: {
+      flex: 1,
+      width: '100%',
+      position: 'relative',
+    },
+    swipeableContent: {
+      flex: 1,
+      width: '100%',
+    },
+    innerContainer: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderRadius: ui.radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+      minHeight: 65,
+      ...getShadow(colors.shadowColor),
+    },
+    noteText: {
+      flex: 1,
+      fontSize: 16,
+      textAlignVertical: 'center',
+      paddingVertical: 2,
+      color: colors.textPrimary,
+    },
+    completed: {
+      textDecorationLine: 'line-through',
+      color: colors.textMuted,
+      fontWeight: '400',
+    },
+    notCompleted: {
+      color: colors.textPrimary,
+      fontWeight: '600',
+    },
+    deleteContainer: {
+      width: Math.abs(SWIPE_THRESHOLD),
+      position: 'absolute',
+      right: 0,
+      height: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
+    deleteButton: {
+      marginTop: 5,
+      width: Math.abs(SWIPE_THRESHOLD),
+      height: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    oldNote: {
+      borderColor: colors.accent,
+      backgroundColor: colors.surfaceSoft,
+    },
+  }), [colors]);
 
   const gesture = Gesture.Pan()
     .activeOffsetX([-10, 10]) // Only activate gesture when horizontal movement exceeds 10 pixels
@@ -90,7 +159,7 @@ const NoteItem: React.FC<NoteItemProps> = ({
       // Hide the container completely when not fully swiped
       transform: [{ translateX: isFullyOpen ? 0 : 100 }],
       pointerEvents: isFullyOpen ? 'auto' : 'none',
-      backgroundColor: ui.colors.background,
+      backgroundColor: colors.background,
     };
   });
 
@@ -152,7 +221,7 @@ const NoteItem: React.FC<NoteItemProps> = ({
             <IconButton
               icon="trash-can"
               size={36}
-              iconColor="#ff4444"
+              iconColor={colors.dangerDark}
             />
           </TouchableOpacity>
         </Animated.View>
@@ -160,72 +229,5 @@ const NoteItem: React.FC<NoteItemProps> = ({
     </Animated.View>
   );
 };
-
-const styles = StyleSheet.create({
-  rowContainer: {
-    flex: 1,
-    width: '100%',
-    marginBottom: 12,
-    marginTop: 4,
-  },
-  container: {
-    flex: 1,
-    width: '100%',
-    position: 'relative',
-  },
-  swipeableContent: {
-    flex: 1,
-    width: '100%',
-  },
-  innerContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: ui.colors.surface,
-    borderRadius: ui.radius.md,
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    minHeight: 65,
-    ...shadow,
-  },
-  noteText: {
-    flex: 1,
-    fontSize: 16,
-    textAlignVertical: 'center',
-    paddingVertical: 2,
-    color: ui.colors.textPrimary,
-  },
-  completed: {
-    textDecorationLine: 'line-through',
-    color: ui.colors.textMuted,
-    fontWeight: '400',
-  },
-  notCompleted: {
-    color: ui.colors.textPrimary,
-    fontWeight: '600',
-  },
-  deleteContainer: {
-    width: Math.abs(SWIPE_THRESHOLD),
-    position: 'absolute',
-    right: 0,
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: ui.colors.background,
-  },
-  deleteButton: {
-    marginTop: 5,
-    width: Math.abs(SWIPE_THRESHOLD),
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  oldNote: {
-    borderColor: ui.colors.accent,
-    backgroundColor: '#FFF4E8',
-  },
-});
 
 export default NoteItem;

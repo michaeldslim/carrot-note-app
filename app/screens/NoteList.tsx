@@ -19,7 +19,7 @@ import {
   Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   fetchNotes,
@@ -36,7 +36,8 @@ import NoteItem from './NoteItem';
 import CustomDropdown from './CustomDropdown';
 import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { shadow, ui } from '../theme/ui';
+import { getShadow, ui } from '../theme/ui';
+import { useTheme } from '../theme/ThemeContext';
 
 type NoteListProps = NativeStackScreenProps<RootStackList, 'List'>;
 
@@ -165,6 +166,269 @@ const NoteList = ({ navigation }: NoteListProps) => {
     }
   }, [userId]);
 
+  const { colors } = useTheme();
+
+  const styles = useMemo(() => {
+    const sh = getShadow(colors.shadowColor);
+    return StyleSheet.create({
+      keyboardAvoidingView: {
+        flex: 1,
+        backgroundColor: colors.background,
+      },
+      safeArea: {
+        flex: 1,
+        backgroundColor: colors.background,
+      },
+      container: {
+        flex: 1,
+        marginHorizontal: 14,
+      },
+      inputSection: {
+        paddingVertical: 4,
+      },
+      formCard: {
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: ui.radius.lg,
+        padding: ui.spacing.md,
+        ...sh,
+        overflow: 'visible',
+        elevation: Platform.OS === 'android' ? 2 : sh.elevation,
+      },
+      listContainer: {
+        flex: 1,
+        marginTop: 4,
+      },
+      stickyFilterContainer: {
+        paddingBottom: 4,
+        backgroundColor: colors.background,
+      },
+      flatList: {
+        flex: 1,
+      },
+      listContentContainer: {
+        paddingHorizontal: 2,
+        paddingVertical: 5,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+      },
+      listFooter: {
+        height: Platform.OS === 'ios' ? 40 : 20,
+      },
+      listHeader: {
+        height: 1,
+      },
+      form: {
+        marginVertical: 10,
+        flexDirection: 'column',
+      },
+      activeInput: {
+        fontSize: 16,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: colors.primary,
+        backgroundColor: colors.surface,
+        borderRadius: ui.radius.md,
+        width: '100%',
+        marginBottom: ui.spacing.md,
+        minHeight: 64,
+        color: colors.textPrimary,
+      },
+      inActiveInput: {
+        fontSize: 16,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: ui.radius.md,
+        width: '100%',
+        marginBottom: ui.spacing.md,
+        minHeight: 64,
+        backgroundColor: colors.surfaceSoft,
+        color: colors.textMuted,
+      },
+      titleInputActive: {
+        fontSize: 16,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: colors.primary,
+        backgroundColor: colors.surface,
+        borderRadius: ui.radius.md,
+        width: '100%',
+        marginBottom: ui.spacing.md,
+        color: colors.textPrimary,
+      },
+      titleInputInactive: {
+        fontSize: 16,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: ui.radius.md,
+        width: '100%',
+        marginBottom: ui.spacing.md,
+        backgroundColor: colors.surfaceSoft,
+        color: colors.textMuted,
+      },
+      buttonContainer: {
+        width: '100%',
+        marginTop: 2,
+      },
+      button: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 13,
+        marginBottom: 10,
+        borderRadius: ui.radius.md,
+        width: '100%',
+      },
+      buttonText: {
+        color: colors.textSecondary,
+        fontSize: 14,
+        fontWeight: '600',
+      } as TextStyle,
+      addButtonText: {
+        color: colors.surface,
+        ...ui.typography.button,
+      } as TextStyle,
+      disabledButton: {
+        backgroundColor: colors.disabled,
+      },
+      addButton: {
+        backgroundColor: colors.primary,
+      },
+      pickerContainer: {
+        marginBottom: ui.spacing.md,
+        borderColor: colors.border,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderRadius: ui.radius.md,
+        ...sh,
+      },
+      inputActiveWrapper: {
+        borderColor: colors.primary,
+      },
+      inputInActiveWrapper: {
+        borderColor: colors.border,
+      },
+      filterContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginTop: 4,
+      },
+      filterButton: {
+        borderRadius: ui.radius.pill,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        paddingVertical: 7,
+        paddingHorizontal: 10,
+        marginRight: 6,
+      },
+      filterButtonSelected: {
+        backgroundColor: colors.surfaceSoft,
+        borderColor: colors.primary,
+      },
+      filterButtonTextSelected: {
+        color: colors.primaryDark,
+      },
+      modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: colors.overlay,
+      },
+      modalContent: {
+        width: 300,
+        padding: 20,
+        backgroundColor: colors.surface,
+        borderRadius: ui.radius.lg,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.border,
+      },
+      modalText: {
+        fontSize: 18,
+        marginBottom: 20,
+        textAlign: 'center',
+        color: colors.textPrimary,
+      },
+      modalButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+      },
+      modalButtonCancel: {
+        flex: 1,
+        padding: 10,
+        alignItems: 'center',
+        backgroundColor: colors.disabled,
+        borderRadius: ui.radius.md,
+        marginRight: 5,
+      },
+      modalButtonDelete: {
+        flex: 1,
+        padding: 10,
+        alignItems: 'center',
+        backgroundColor: colors.danger,
+        borderRadius: ui.radius.md,
+        marginLeft: 5,
+      },
+      modalButtonText: {
+        color: colors.surface,
+        fontSize: 16,
+      },
+      categoryContainer: {
+        flexDirection: 'row',
+      },
+      helperText: {
+        ...ui.typography.body,
+        color: colors.textMuted,
+        marginTop: 2,
+        marginBottom: ui.spacing.xs,
+      },
+      detailsToggle: {
+        paddingVertical: 6,
+        marginBottom: ui.spacing.sm,
+      },
+      detailsToggleContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+      },
+      detailsToggleText: {
+        fontSize: 13,
+        color: colors.primaryDark,
+        fontWeight: '600',
+      },
+      detailsToggleTextDisabled: {
+        color: colors.textMuted,
+      },
+      formScrollContent: {
+        flexGrow: 1,
+      },
+      emptyState: {
+        backgroundColor: colors.surface,
+        borderRadius: ui.radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: ui.spacing.xl,
+        alignItems: 'center',
+        marginTop: 10,
+      },
+      emptyStateTitle: {
+        color: colors.textPrimary,
+        fontSize: 18,
+        fontWeight: '700',
+        marginBottom: 4,
+      },
+      emptyStateText: {
+        color: colors.textSecondary,
+        fontSize: 14,
+        textAlign: 'center',
+      },
+    });
+  }, [colors]);
+
   return (
     <KeyboardAvoidingView
       behavior={'padding'}
@@ -193,7 +457,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
                   selectedValue={category}
                   onValueChange={(value) => setCategory(value)}
                   style={{
-                    color: ui.colors.textPrimary,
+                    color: colors.textPrimary,
                     fontSize: 16,
                   }}
                 >
@@ -215,7 +479,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
               maxLength={80}
               multiline={false}
               editable={category !== 'Select an option'}
-              placeholderTextColor={ui.colors.textMuted}
+              placeholderTextColor={colors.textMuted}
             />
             <TouchableOpacity
               style={styles.detailsToggle}
@@ -234,7 +498,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
                   <MaterialCommunityIcons
                     name={showDetails ? 'chevron-up-circle' : 'chevron-down-circle'}
                     size={16}
-                    color={ui.colors.danger}
+                    color={colors.danger}
                   />
                   <Text
                     style={[
@@ -263,7 +527,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
                 numberOfLines={3}
                 textAlignVertical="top"
                 editable={category !== 'Select an option'}
-                placeholderTextColor={ui.colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 onFocus={() => {
                   setTimeout(() => {
                     formScrollRef.current?.scrollToEnd({ animated: true });
@@ -360,260 +624,5 @@ const NoteList = ({ navigation }: NoteListProps) => {
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  keyboardAvoidingView: {
-    flex: 1,
-    backgroundColor: ui.colors.background,
-  },
-  safeArea: {
-    flex: 1,
-    backgroundColor: ui.colors.background,
-  },
-  container: {
-    flex: 1,
-    marginHorizontal: 14,
-  },
-  inputSection: {
-    paddingVertical: 4,
-  },
-  formCard: {
-    backgroundColor: ui.colors.surface,
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    borderRadius: ui.radius.lg,
-    padding: ui.spacing.md,
-    ...shadow,
-    overflow: 'visible',
-    elevation: Platform.OS === 'android' ? 2 : shadow.elevation,
-  },
-  listContainer: {
-    flex: 1,
-    marginTop: 4,
-  },
-  stickyFilterContainer: {
-    paddingBottom: 4,
-    backgroundColor: ui.colors.background,
-  },
-  flatList: {
-    flex: 1,
-  },
-  listContentContainer: {
-    paddingHorizontal: 2,
-    paddingVertical: 5,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
-  },
-  listFooter: {
-    height: Platform.OS === 'ios' ? 40 : 20,
-  },
-  listHeader: {
-    height: 1,
-  },
-  form: {
-    marginVertical: 10,
-    flexDirection: 'column',
-  },
-  activeInput: {
-    fontSize: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: ui.colors.primary,
-    backgroundColor: ui.colors.surface,
-    borderRadius: ui.radius.md,
-    width: '100%',
-    marginBottom: ui.spacing.md,
-    minHeight: 64,
-    color: ui.colors.textPrimary,
-  },
-  inActiveInput: {
-    fontSize: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    borderRadius: ui.radius.md,
-    width: '100%',
-    marginBottom: ui.spacing.md,
-    minHeight: 64,
-    backgroundColor: ui.colors.surfaceSoft,
-    color: ui.colors.textMuted,
-  },
-  titleInputActive: {
-    fontSize: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: ui.colors.primary,
-    backgroundColor: ui.colors.surface,
-    borderRadius: ui.radius.md,
-    width: '100%',
-    marginBottom: ui.spacing.md,
-    color: ui.colors.textPrimary,
-  },
-  titleInputInactive: {
-    fontSize: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    borderRadius: ui.radius.md,
-    width: '100%',
-    marginBottom: ui.spacing.md,
-    backgroundColor: ui.colors.surfaceSoft,
-    color: ui.colors.textMuted,
-  },
-  buttonContainer: {
-    width: '100%',
-    marginTop: 2,
-  },
-  button: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 13,
-    marginBottom: 10,
-    borderRadius: ui.radius.md,
-    width: '100%',
-  },
-  buttonText: {
-    color: ui.colors.textSecondary,
-    fontSize: 14,
-    fontWeight: '600',
-  } as TextStyle,
-  addButtonText: {
-    color: ui.colors.surface,
-    ...ui.typography.button,
-  } as TextStyle,
-  disabledButton: {
-    backgroundColor: ui.colors.disabled,
-  },
-  addButton: {
-    backgroundColor: ui.colors.primary,
-  },
-  pickerContainer: {
-    marginBottom: ui.spacing.md,
-    borderColor: ui.colors.border,
-    backgroundColor: ui.colors.surface,
-    borderWidth: 1,
-    borderRadius: ui.radius.md,
-    ...shadow,
-  },
-  inputActiveWrapper: {
-    borderColor: '#2196f3',
-  },
-  inputInActiveWrapper: {
-    borderColor: '#cccccc',
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 4,
-  },
-  filterButton: {
-    borderRadius: ui.radius.pill,
-    backgroundColor: ui.colors.surface,
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    paddingVertical: 7,
-    paddingHorizontal: 10,
-    marginRight: 6,
-  },
-  filterButtonSelected: {
-    backgroundColor: ui.colors.surfaceSoft,
-    borderColor: ui.colors.primary,
-  },
-  filterButtonTextSelected: {
-    color: ui.colors.primaryDark,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
-  },
-  modalContent: {
-    width: 300,
-    padding: 20,
-    backgroundColor: 'white',
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  modalText: {
-    fontSize: 18,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  modalButtonCancel: {
-    flex: 1,
-    padding: 10,
-    alignItems: 'center',
-    backgroundColor: '#d8d8d8',
-    borderRadius: 5,
-    marginRight: 5,
-  },
-  modalButtonDelete: {
-    flex: 1,
-    padding: 10,
-    alignItems: 'center',
-    backgroundColor: '#f44336',
-    borderRadius: 5,
-    marginLeft: 5,
-  },
-  modalButtonText: {
-    color: 'white',
-    fontSize: 16,
-  },
-  categoryContainer: {
-    flexDirection: 'row',
-  },
-  helperText: {
-    ...ui.typography.body,
-    color: ui.colors.textMuted,
-    marginTop: 2,
-    marginBottom: ui.spacing.xs,
-  },
-  detailsToggle: {
-    paddingVertical: 6,
-    marginBottom: ui.spacing.sm,
-  },
-  detailsToggleContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  detailsToggleText: {
-    fontSize: 13,
-    color: ui.colors.primaryDark,
-    fontWeight: '600',
-  },
-  detailsToggleTextDisabled: {
-    color: ui.colors.textMuted,
-  },
-  formScrollContent: {
-    flexGrow: 1,
-  },
-  emptyState: {
-    backgroundColor: ui.colors.surface,
-    borderRadius: ui.radius.lg,
-    borderWidth: 1,
-    borderColor: ui.colors.border,
-    padding: ui.spacing.xl,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  emptyStateTitle: {
-    color: ui.colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  emptyStateText: {
-    color: ui.colors.textSecondary,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-});
 
 export default NoteList;
