@@ -17,6 +17,7 @@ import {
   RefreshControl,
   SafeAreaView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
@@ -59,6 +60,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
   const [startDate, setStartDate] = useState<string | undefined>(undefined);
   const [endDate, setEndDate] = useState<string | undefined>(undefined);
   const [formExpanded, setFormExpanded] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const auth = FIREBASE_AUTH;
   const userId = auth.currentUser?.uid;
   const detailsInputRef = useRef<any>(null);
@@ -76,10 +78,12 @@ const NoteList = ({ navigation }: NoteListProps) => {
 
   useEffect(() => {
     const loadNotes = async () => {
+      setIsLoading(true);
       if (userId) {
         const fetchedNotes = await fetchNotes(userId);
         setNotes(fetchedNotes);
       }
+      setIsLoading(false);
     };
     loadNotes().then();
   }, [userId, isFocused]);
@@ -687,12 +691,18 @@ const NoteList = ({ navigation }: NoteListProps) => {
               contentContainerStyle={styles.listContentContainer}
               showsVerticalScrollIndicator={true}
               ListEmptyComponent={
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateTitle}>No notes yet</Text>
-                  <Text style={styles.emptyStateText}>
-                    Add your first note above to get started.
-                  </Text>
-                </View>
+                isLoading ? (
+                  <View style={styles.emptyState}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                  </View>
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyStateTitle}>No notes yet</Text>
+                    <Text style={styles.emptyStateText}>
+                      Add your first note above to get started.
+                    </Text>
+                  </View>
+                )
               }
               ListFooterComponent={<View style={styles.listFooter} />}
               ListHeaderComponent={<View style={styles.listHeader} />}
