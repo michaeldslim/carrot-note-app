@@ -23,6 +23,9 @@
       },
       "package": "com.mike008.carrotnote"
     },
+    "plugins": [
+      "expo-notifications"
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     }

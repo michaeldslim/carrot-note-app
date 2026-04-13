@@ -29,6 +29,11 @@ import {
   fetchCategories,
   addCategories,
 } from '../service/firebaseService';
+import {
+  cancelDeadlineReminder,
+  requestNotificationPermission,
+  upsertDeadlineReminder,
+} from '../service/notificationService';
 import { Note } from './types';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackList } from '../navigation/RootNavigator';
@@ -65,6 +70,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
   const userId = auth.currentUser?.uid;
   const detailsInputRef = useRef<any>(null);
   const formScrollRef = useRef<ScrollView>(null);
+  const hasRequestedNotificationPermissionRef = useRef<boolean>(false);
 
   const filterNotes = useCallback(() => {
     if (selectedCategory === 'All') {
@@ -116,6 +122,16 @@ const NoteList = ({ navigation }: NoteListProps) => {
     filterNotes();
   }, [notes, selectedCategory, filterNotes]);
 
+  useEffect(() => {
+    const ensureNotificationPermission = async () => {
+      if (!userId || hasRequestedNotificationPermissionRef.current) return;
+      hasRequestedNotificationPermissionRef.current = true;
+      await requestNotificationPermission();
+    };
+
+    ensureNotificationPermission().then();
+  }, [userId]);
+
   const getTotalNotesByCategory = (category: string) => {
     if (category === 'All') {
       return notes.length;
@@ -137,7 +153,13 @@ const NoteList = ({ navigation }: NoteListProps) => {
           startDate: startDate,
           endDate: endDate,
         };
-        await addNote(noteItem);
+        const newNoteId = await addNote(noteItem);
+        await upsertDeadlineReminder({
+          id: newNoteId,
+          title: noteItem.title,
+          note: noteItem.note,
+          endDate: noteItem.endDate,
+        });
         const fetchedNotes = await fetchNotes(userId);
         setNotes(fetchedNotes);
         setNoteText('');
@@ -162,6 +184,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
     if (!noteId) return;
     if (userId) {
       await deleteNote(noteId);
+      await cancelDeadlineReminder(noteId);
       const fetchedNotes = await fetchNotes(userId);
       setNotes(fetchedNotes);
     }

@@ -20,6 +20,14 @@ import Animated, {
 const SWIPE_THRESHOLD = -65;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+const parseLocalDate = (value: string): Date => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [y, m, d] = value.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return new Date(value);
+};
+
 interface NoteItemProps {
   note: Note;
   onPress: () => void;
@@ -188,7 +196,7 @@ const NoteItem: React.FC<NoteItemProps> = ({
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (note.endDate) {
-        const end = new Date(note.endDate);
+        const end = parseLocalDate(note.endDate);
         end.setHours(0, 0, 0, 0);
         return today > end;
       }

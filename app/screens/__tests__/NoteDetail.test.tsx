@@ -7,11 +7,17 @@ import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import NoteDetail from '../NoteDetail';
 import * as firebaseService from '../../service/firebaseService';
+import * as notificationService from '../../service/notificationService';
 
 jest.mock('../../service/firebaseService', () => ({
   updateNote: jest.fn().mockResolvedValue(undefined),
   deleteNote: jest.fn().mockResolvedValue(undefined),
   toggleStatus: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('../../service/notificationService', () => ({
+  upsertDeadlineReminder: jest.fn().mockResolvedValue('notification-id'),
+  cancelDeadlineReminder: jest.fn().mockResolvedValue(undefined),
 }));
 
 const createProps = () => {
@@ -63,6 +69,14 @@ describe('NoteDetail screen', () => {
       expect(firebaseService.updateNote).toHaveBeenCalledWith('1', {
         title: undefined,
         note: updatedText,
+        startDate: undefined,
+        endDate: undefined,
+      });
+      expect(notificationService.upsertDeadlineReminder).toHaveBeenCalledWith({
+        id: '1',
+        title: undefined,
+        note: updatedText,
+        endDate: undefined,
       });
       expect(props.navigation.goBack).toHaveBeenCalled();
     });

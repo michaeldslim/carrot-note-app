@@ -19,6 +19,10 @@ import {
   updateNote,
   toggleStatus,
 } from '../service/firebaseService';
+import {
+  cancelDeadlineReminder,
+  upsertDeadlineReminder,
+} from '../service/notificationService';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackList } from '../navigation/RootNavigator';
 import { NoteUpdateButton } from '../components/noteUpdateButton';
@@ -186,6 +190,12 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
       startDate: editStartDate,
       endDate: editEndDate,
     });
+    await upsertDeadlineReminder({
+      id: noteItem.id,
+      title: editTitle.trim() || undefined,
+      note: editNote,
+      endDate: editEndDate,
+    });
     navigation.goBack();
   };
 
@@ -193,6 +203,7 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
     if (!noteItem.id) return;
 
     await deleteNote(noteItem.id);
+    await cancelDeadlineReminder(noteItem.id);
     setIsModalVisible(false);
     navigation.goBack();
   };
