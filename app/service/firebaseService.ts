@@ -61,7 +61,8 @@ export const fetchNotes = async (userId: string): Promise<Note[]> => {
 };
 
 export const addNote = async (note: Omit<Note, 'id'>) => {
-  await addDoc(notesCollection, note);
+  const docRef = await addDoc(notesCollection, note);
+  return docRef.id;
 };
 
 export const updateNote = async (

@@ -3,14 +3,23 @@
  This software is free to use, modify, and share under 
  the terms of the GNU General Public License v3.
 */
-import React from 'react';
+import React, { useEffect } from 'react';
 import RootNavigator from './app/navigation/RootNavigator';
 import { ThemeProvider } from './app/theme/ThemeContext';
 import * as WebBrowser from 'expo-web-browser';
+import {
+  configureNotificationChannel,
+  configureNotificationHandler,
+} from './app/service/notificationService';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const App: React.FC = () => {
+  useEffect(() => {
+    configureNotificationHandler();
+    configureNotificationChannel().then();
+  }, []);
+
   return (
     <ThemeProvider>
       <RootNavigator />
