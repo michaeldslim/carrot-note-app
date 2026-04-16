@@ -51,10 +51,19 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
   const isExpoGo = Constants.executionEnvironment === 'storeClient';
   const proxyClientId = GOOGLE_AUTH_CONFIG.webClientId || GOOGLE_AUTH_CONFIG.clientId;
 
+  // expo-auth-session throws synchronously on Android if androidClientId is undefined.
+  // Pass a placeholder so the hook never throws; isGoogleConfigured gates the button.
+  const PLACEHOLDER = 'not-configured';
+  const isGoogleConfigured = !!(
+    GOOGLE_AUTH_CONFIG.androidClientId ||
+    GOOGLE_AUTH_CONFIG.iosClientId ||
+    proxyClientId
+  );
+
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: isExpoGo ? proxyClientId || undefined : undefined,
-    androidClientId: (isExpoGo ? proxyClientId : GOOGLE_AUTH_CONFIG.androidClientId) || undefined,
-    iosClientId: GOOGLE_AUTH_CONFIG.iosClientId || undefined,
+    clientId: isExpoGo ? proxyClientId || PLACEHOLDER : PLACEHOLDER,
+    androidClientId: (isExpoGo ? proxyClientId : GOOGLE_AUTH_CONFIG.androidClientId) || PLACEHOLDER,
+    iosClientId: GOOGLE_AUTH_CONFIG.iosClientId || PLACEHOLDER,
     webClientId: GOOGLE_AUTH_CONFIG.webClientId || undefined,
   });
 
@@ -129,7 +138,7 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
   };
 
   const handleGoogleLogin = async () => {
-    if (!request) {
+    if (!isGoogleConfigured || !request) {
       setError('Google login is unavailable. Check your OAuth client IDs.');
       return;
     }
@@ -295,7 +304,7 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
 
   const isDisabled =
     !email.trim() || !password.trim() || isSubmitting || isGoogleSubmitting;
-  const isGoogleDisabled = !request || isSubmitting || isGoogleSubmitting;
+  const isGoogleDisabled = !isGoogleConfigured || !request || isSubmitting || isGoogleSubmitting;
 
   if (isGoogleSubmitting) {
     return (
