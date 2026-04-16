@@ -82,5 +82,3 @@ const Loading: React.FC<LoadingProps> = ({ navigation }) => {
 };
 
 export default Loading;
-
-export default Loading;

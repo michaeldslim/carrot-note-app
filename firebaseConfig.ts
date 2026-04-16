@@ -6,6 +6,7 @@
 import { initializeApp, getApp } from 'firebase/app';
 import {
   initializeAuth,
+  getAuth,
   getReactNativePersistence,
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
@@ -34,6 +35,14 @@ try {
 
 export const FIREBASE_APP = app;
 export const FIRESTORE_DB = getFirestore(FIREBASE_APP);
-export const FIREBASE_AUTH = initializeAuth(FIREBASE_APP, {
-  persistence: getReactNativePersistence(ReactNativeAsyncStorage),
-});
+
+// Guard against re-initializing Auth when the module is re-evaluated
+let auth;
+try {
+  auth = initializeAuth(FIREBASE_APP, {
+    persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+  });
+} catch {
+  auth = getAuth(FIREBASE_APP);
+}
+export const FIREBASE_AUTH = auth;
