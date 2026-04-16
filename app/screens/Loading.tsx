@@ -10,7 +10,6 @@ import { RootStackList } from '../navigation/RootNavigator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
-import { ui } from '../theme/ui';
 import { useTheme } from '../theme/ThemeContext';
 
 type LoadingProps = NativeStackScreenProps<RootStackList, 'Loading'>;
