@@ -28,6 +28,16 @@
     ],
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/9ee86b50-4e2e-4145-9224-063c87138b23"
+    },
+    "runtimeVersion": "1.0.0",
+    "extra": {
+      "eas": {
+        "projectId": "9ee86b50-4e2e-4145-9224-063c87138b23"
+      }
+    },
+    "owner": "mike008"
   }
 }
