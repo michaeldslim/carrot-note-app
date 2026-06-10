@@ -16,7 +16,8 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   fetchNotes,
   deleteNote,
