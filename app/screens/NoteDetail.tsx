@@ -243,7 +243,7 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
     >
       <View style={styles.container}>
       <View style={styles.formHeader}>
-        <Text style={styles.title}>Edit note</Text>
+        <Text style={styles.title}>Update note</Text>
         <Text style={styles.subtitle}>Update details or manage completion status</Text>
       </View>
       <View style={styles.form}>
@@ -259,7 +259,7 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
           style={styles.input}
           value={editNote}
           onChangeText={(text) => setEditNote(text.trimStart())}
-          placeholder="Edit note (optional)"
+          placeholder="Detail note (optional)"
           placeholderTextColor={colors.textMuted}
           maxLength={200}
           multiline={true}
