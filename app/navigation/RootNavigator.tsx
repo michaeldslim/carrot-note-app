@@ -6,6 +6,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { StatusBar } from 'react-native';
 import React from 'react';
 import NoteList from '../screens/NoteList';
 import CalendarScreen from '../screens/CalendarScreen';
@@ -31,9 +32,11 @@ export type RootStackList = {
 const Stack = createNativeStackNavigator<RootStackList>();
 
 const RootNavigator = () => {
-  const { colors } = useTheme();
+  const { colors, themeName } = useTheme();
+  const barStyle = themeName === 'light' ? 'dark-content' : 'light-content';
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <StatusBar backgroundColor={colors.surface} barStyle={barStyle} translucent={false} />
       <NavigationContainer>
         <Stack.Navigator
           screenOptions={{
