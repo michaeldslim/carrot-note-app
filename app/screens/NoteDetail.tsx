@@ -46,7 +46,8 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
   const styles = useMemo(() => StyleSheet.create({
     scrollContent: {
       flexGrow: 1,
-      justifyContent: 'center',
+      paddingTop: 16,
+      paddingBottom: 32,
     },
     container: {
       marginHorizontal: 16,
@@ -91,7 +92,7 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
       borderColor: colors.border,
       borderRadius: ui.radius.md,
       width: '100%',
-      minHeight: 120,
+      height: 160,
       marginBottom: ui.spacing.md,
       backgroundColor: colors.surface,
       color: colors.textPrimary,
@@ -264,6 +265,7 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
           multiline={true}
           numberOfLines={3}
           textAlignVertical="top"
+          scrollEnabled={true}
         />
         <DateRangePicker
           startDate={editStartDate}

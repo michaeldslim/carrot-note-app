@@ -33,7 +33,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
   onClose,
   onNotePress,
 }) => {
-  const { colors } = useTheme();
+  const { colors, themeName } = useTheme();
   const [selectedDay, setSelectedDay] = React.useState<string | null>(null);
 
   const markedDates = useMemo(() => {
@@ -204,6 +204,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
               </TouchableOpacity>
             </View>
             <Calendar
+              key={themeName}
               markingType="multi-dot"
               markedDates={markedDates}
               onDayPress={(day: { dateString: string }) => setSelectedDay(day.dateString)}

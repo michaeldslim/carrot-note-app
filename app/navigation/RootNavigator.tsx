@@ -8,6 +8,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import React from 'react';
 import NoteList from '../screens/NoteList';
+import CalendarScreen from '../screens/CalendarScreen';
 import Loading from '../screens/Loading';
 import NoteDetail from '../screens/NoteDetail';
 import { Note } from '../screens/types';
@@ -18,6 +19,7 @@ import { useTheme } from '../theme/ThemeContext';
 
 export type RootStackList = {
   Loading: undefined;
+  Calendar: undefined;
   List: undefined;
   Detail: { noteItem: Note };
   Login: undefined;
@@ -67,11 +69,18 @@ const RootNavigator = () => {
             options={{ title: 'Carrot Note Signup', headerBackVisible: false }}
           />
           <Stack.Screen
+            name="Calendar"
+            component={CalendarScreen}
+            options={{
+              title: 'Carrot Scheduler',
+              headerBackVisible: false,
+            }}
+          />
+          <Stack.Screen
             name="List"
             component={NoteList}
             options={{
               title: 'Carrot Note List',
-              headerBackVisible: false,
             }}
           />
           <Stack.Screen

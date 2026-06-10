@@ -51,7 +51,7 @@ const Loading: React.FC<LoadingProps> = ({ navigation }) => {
             if (!storedUser) {
               await AsyncStorage.setItem('user', JSON.stringify(user));
             }
-            navigation.replace('List');
+            navigation.replace('Calendar');
           } else {
             // No user is signed in
             if (storedUser) {
