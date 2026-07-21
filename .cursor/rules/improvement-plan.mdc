@@ -1,0 +1,254 @@
+---
+description: Roadmap for UI, logic, and note-type improvements in Carrot Note App
+alwaysApply: false
+---
+
+# Carrot Note App — Improvement Plan
+
+Use this rule when implementing features, refactors, or UX polish. Prioritize phases in order unless the user scopes a single area.
+
+## Current State (baseline)
+
+- **Stack:** Expo 51, React Native, Firebase Auth + Firestore, React Navigation, react-native-paper, reanimated
+- **Screens:** Loading → Calendar (home), NoteList, NoteDetail, Settings, Login/Signup
+- **Data model:** Single flat `Note` type (`title`, `note`, `completed`, `category`, `startDate`, `endDate`)
+- **Themes:** light, darkGreen, darkTeal via `ThemeContext`
+- **Pain points:** No Firestore real-time sync; duplicated fetch/category logic in `NoteList` + `CalendarScreen`; inline header styles; limited test coverage; README still describes generic todo scaffold
+
+---
+
+## Phase 1 — Logic & Architecture (foundation)
+
+Do this before new note types so extensions don't multiply tech debt.
+
+### 1.1 Real-time Firestore listeners
+- Replace one-shot `fetchNotes` + manual refresh with `onSnapshot` in a shared hook
+- Unsubscribe on blur/unmount to avoid leaks
+- Keep pull-to-refresh as a forced re-sync fallback
+
+```typescript
+// Target: app/hooks/useNotes.ts
+export function useNotes(userId: string | undefined) {
+  // onSnapshot → notes[], loading, error, refresh()
+}
+```
+
+### 1.2 Shared data hooks
+Extract duplicated logic from `NoteList.tsx` and `CalendarScreen.tsx`:
+- `useNotes(userId)` — notes + loading + error
+- `useCategories(userId)` — categories + seed defaults (`Home`, `Shopping`)
+- `useNoteFilters(notes)` — category filter, completion filter, search
+
+### 1.3 Centralized note mutations
+- Wrap `addNote`, `updateNote`, `toggleStatus`, `deleteNote` in a `noteActions` module or context
+- Always pair delete with `cancelDeadlineReminder`
+- Always pair date changes with `upsertDeadlineReminder` / `cancelDeadlineReminder`
+- Surface errors via a single `showError(message)` helper instead of scattered `Alert.alert`
+
+### 1.4 Optimistic UI
+- Toggle complete / delete: update local state immediately, rollback on Firestore failure
+- Reduces perceived lag on slow networks
+
+### 1.5 Type-safe navigation params
+- Ensure `Detail` receives `noteId` (not full `Note` object) so edits on one screen reflect everywhere
+- Fetch or select from store by id to avoid stale route params
+
+---
+
+## Phase 2 — UI Improvements
+
+Match existing design tokens in `app/theme/ui.ts` and `themes.ts`. Do not introduce a second design system.
+
+### 2.1 Shared UI primitives
+Create small reusable components under `app/components/ui/`:
+- `ScreenHeaderActions` — calendar + settings pills (currently duplicated inline)
+- `CategoryChipRow` — horizontal filter chips with count badges
+- `EmptyState` — icon, title, subtitle, optional CTA
+- `LoadingState` — consistent spinner + message
+- `Card` — surface + border + shadow wrapper
+
+### 2.2 Note list UX
+- **Search bar** above category chips (filter by title + note body)
+- **Sort options:** newest, oldest, due date, category
+- **Completion filter:** All / Active / Completed
+- **Inline complete** checkbox on `NoteItem` (avoid navigating to Detail for simple toggles)
+- **Category color dots** on each row (store color on category doc in Firestore)
+- **Haptic feedback** on swipe-delete and complete (expo-haptics)
+
+### 2.3 Calendar screen UX
+- Dot indicators on calendar days (count or color by category)
+- "Today" quick-jump button
+- Week view toggle (optional, phase 2b)
+- Unify QuickAdd + NoteDetail field layout for consistency
+
+### 2.4 Note detail UX
+- Character count for title/body
+- Sticky action bar (Update / Complete / Delete) on scroll
+- Unsaved-changes guard on back navigation
+- Better date picker affordance (show human-readable "Due in 2 days")
+
+### 2.5 Auth & settings polish
+- Password visibility toggle on Login/Signup
+- App version + build number in Settings footer
+- Confirm dialog before logout
+- Respect system color scheme as a 4th theme option (`system` → light/darkGreen/darkTeal)
+
+### 2.6 Accessibility
+- `accessibilityLabel` on swipe actions, filter chips, FAB
+- Minimum 44pt touch targets
+- Screen reader announcements on complete/delete
+
+### 2.7 Motion
+- Subtle list item enter animation (FadeInDown via reanimated)
+- Spring on filter chip selection
+- Keep animations under 300ms; respect reduced-motion where possible
+
+---
+
+## Phase 3 — Note Types (extend data model)
+
+Introduce a discriminated union on `Note`. **Default existing docs to `type: 'task'`** for backward compatibility.
+
+```typescript
+// app/screens/types.ts
+export type NoteType = 'task' | 'checklist' | 'reminder' | 'recurring';
+
+export interface BaseNote {
+  id: string;
+  type: NoteType;
+  title?: string;
+  completed: boolean;
+  createdAt: string;
+  category?: string;
+  userId?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface TaskNote extends BaseNote {
+  type: 'task';
+  note: string;
+}
+
+export interface ChecklistNote extends BaseNote {
+  type: 'checklist';
+  items: { id: string; text: string; checked: boolean }[];
+}
+
+export interface ReminderNote extends BaseNote {
+  type: 'reminder';
+  note?: string;
+  remindAt: string; // ISO datetime
+}
+
+export interface RecurringNote extends BaseNote {
+  type: 'recurring';
+  note: string;
+  recurrence: 'daily' | 'weekly' | 'monthly' | 'custom';
+  recurrenceDays?: number[]; // 0=Sun for weekly
+}
+
+export type Note = TaskNote | ChecklistNote | ReminderNote | RecurringNote;
+```
+
+### 3.1 Task (current behavior)
+- Keep as default; no migration needed beyond adding `type` field on read
+
+### 3.2 Checklist
+- QuickAdd: paste or add multiple lines → checklist items
+- NoteItem: show `2/5` progress badge
+- NoteDetail: reorder items, add/remove sub-items
+- Complete parent when all items checked (configurable in settings)
+
+### 3.3 Reminder
+- Time picker in QuickAdd (not just date)
+- Notification at `remindAt` (extend `notificationService`)
+- NoteItem: clock icon + relative time ("in 3h")
+
+### 3.4 Recurring
+- On complete: spawn next occurrence with updated `startDate`/`endDate`
+- Calendar shows recurring pattern icon
+- Settings: default recurrence for new notes
+
+### 3.5 Type picker in QuickAdd
+- Segmented control: Task | Checklist | Reminder | Recurring
+- Remember last-used type per user (AsyncStorage)
+- Render type-specific fields only (progressive disclosure)
+
+### 3.6 Firestore migration
+- Add `type` on write for all new notes
+- `fetchNotes` mapper: `type: data.type ?? 'task'`
+- Optional one-time admin script to backfill `type` on existing docs
+
+---
+
+## Phase 4 — Gamification (optional, Carrot-themed)
+
+Light engagement layer — do not block core productivity features.
+
+### 4.1 Streaks & carrots
+- Daily "plant" when user completes ≥1 note
+- Streak counter on Calendar header
+- Carrot growth stages (seed → sprout → carrot) based on weekly completions
+
+### 4.2 Achievements (local first)
+- Badges: "First note", "7-day streak", "Inbox zero", "10 checklists"
+- Store in `users/{uid}/stats` subcollection
+- Toast on unlock; gallery in Settings
+
+### 4.3 Gentle nudges
+- End-of-day summary notification (opt-in)
+- No punitive mechanics — avoid guilt-based copy
+
+---
+
+## Phase 5 — Quality & Ops
+
+### 5.1 Tests
+- `useNotes` hook with mocked Firestore
+- `NoteItem` swipe + expired state
+- Checklist completion logic
+- Recurring note spawn on complete
+
+### 5.2 Error boundaries
+- Screen-level error boundary with retry
+- Offline banner when Firestore unreachable
+
+### 5.3 Performance
+- `FlatList` tuning: `getItemLayout`, `removeClippedSubviews`, `maxToRenderPerBatch`
+- Memoize `NoteItem` with `React.memo`
+- Debounce search input (300ms)
+
+### 5.4 Docs
+- Update README to match actual features (Calendar-first flow, Google auth, EAS)
+- Document env vars and note type schema
+
+---
+
+## Implementation Order (recommended)
+
+| Priority | Item | Effort |
+|----------|------|--------|
+| P0 | `useNotes` + `useCategories` hooks | M |
+| P0 | Real-time `onSnapshot` | M |
+| P1 | Shared UI primitives + search/sort | M |
+| P1 | Note type union + task default | S |
+| P1 | Checklist type | L |
+| P2 | Reminder type + time notifications | M |
+| P2 | Recurring type | L |
+| P2 | Inline complete + category colors | S |
+| P3 | Gamification (streaks) | M |
+| P3 | Expanded test suite | M |
+
+S = small, M = medium, L = large
+
+---
+
+## Conventions for agents
+
+- **Minimize scope:** One phase item per PR when possible
+- **Match existing patterns:** `useTheme`, `ui` tokens, copyright header on new files
+- **No breaking changes:** Old notes without `type` must keep working
+- **Firebase:** User-scoped queries only (`where('userId', '==', userId)`)
+- **Notifications:** Always cancel on delete; upsert on date/time change
+- **Do not** add new dependencies without justification (prefer expo-* packages)
