@@ -3,7 +3,7 @@
     "name": "Carrot note",
     "slug": "carrotnote",
     "scheme": "carrotnote",
-    "version": "1.2.0",
+    "version": "1.5.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -32,7 +32,7 @@
     "updates": {
       "url": "https://u.expo.dev/9ee86b50-4e2e-4145-9224-063c87138b23"
     },
-    "runtimeVersion": "1.2.0",
+    "runtimeVersion": "1.5.0",
     "extra": {
       "eas": {
         "projectId": "9ee86b50-4e2e-4145-9224-063c87138b23"
