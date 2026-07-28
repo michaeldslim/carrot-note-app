@@ -1,0 +1,174 @@
+---
+description: Checklist of every file to update when bumping the Carrot Note App version
+alwaysApply: false
+---
+
+# Version Bump Checklist
+
+Use this rule when bumping version numbers in the repo. **Stop after file edits and an optional commit** — the user runs `eas update` / `eas build` manually when ready.
+
+## Version fields (what they mean)
+
+| Field | Example | Purpose |
+|-------|---------|---------|
+| **App version** (semver) | `1.2.0` | User-facing version; npm package version; Android `versionName`; iOS `CFBundleShortVersionString` |
+| **Android `versionCode`** | `2` | **Integer only** — must increase for every Google Play upload (independent of semver) |
+| **iOS build number** | `2` | Integer — must increase for every App Store upload (`CFBundleVersion`) |
+| **`runtimeVersion`** | `1.2.0` | EAS Update / OTA — devices only receive JS updates when this matches the installed binary |
+
+**Rule of thumb:** JS-only OTA → keep `runtimeVersion` unchanged. Native/plugin/binary change → bump `runtimeVersion` (user ships a new binary via EAS when they choose).
+
+---
+
+## Files to update (in repo today)
+
+Update **all semver fields to the same value** unless noted.
+
+### 1. `app.json` (source of truth for Expo)
+
+```json
+{
+  "expo": {
+    "version": "X.Y.Z",
+    "runtimeVersion": "X.Y.Z"
+  }
+}
+```
+
+- `expo.version` — display version for Expo/EAS
+- `expo.runtimeVersion` — OTA channel compatibility (currently matches app version)
+
+Optional (add when using EAS iOS builds without manual plist edits):
+
+```json
+"ios": { "buildNumber": "N" }
+```
+
+### 2. `package.json`
+
+```json
+"version": "X.Y.Z"
+```
+
+### 3. `package-lock.json`
+
+Root `"version"` (and the `"packages".""` entry) — prefer updating via:
+
+```bash
+npm version X.Y.Z --no-git-tag-version
+```
+
+Do not hand-edit thousands of dependency lines.
+
+### 4. `android/app/build.gradle`
+
+```gradle
+defaultConfig {
+    versionCode N        // increment +1 every Play Store release
+    versionName "X.Y.Z"
+}
+```
+
+- **`versionName`** — semver string (match `app.json`)
+- **`versionCode`** — integer; increment +1 when bumping for a future store release (keep in sync even if Play Store is not active yet)
+
+### 5. `android/app/src/main/res/values/strings.xml`
+
+```xml
+<string name="expo_runtime_version">X.Y.Z</string>
+```
+
+Must match `app.json` → `expo.runtimeVersion` (used by `AndroidManifest.xml` via `@string/expo_runtime_version`).
+
+### 6. `android/app/src/main/AndroidManifest.xml`
+
+**Do not edit manually** — reads runtime version from `strings.xml` (`EXPO_RUNTIME_VERSION`).
+
+---
+
+## Files after `npx expo prebuild` (not in repo until generated)
+
+If `ios/` exists or you regenerate native projects, verify these match `app.json`:
+
+| File | Field |
+|------|--------|
+| `ios/<AppName>/Info.plist` | `CFBundleShortVersionString` → `X.Y.Z` |
+| `ios/<AppName>/Info.plist` | `CFBundleVersion` → build number `N` |
+
+Re-run prebuild after changing `app.json`, or edit plist after prebuild. **Prebuild can overwrite custom native edits** — see README prebuild warning.
+
+---
+
+## Optional / future files
+
+| File | When |
+|------|------|
+| `eas.json` | Not in repo yet — if added, align `cli.appVersionSource` / build profiles with your bump workflow |
+| `app/screens/Settings.tsx` | When Settings footer shows version — use `expo-application` (`nativeApplicationVersion`) so it reads from the binary automatically |
+| Git tag | `git tag vX.Y.Z` after release commit |
+| `README.md` | Only if documenting a specific version in prose (usually unnecessary) |
+
+---
+
+## Files you do **not** bump for app version
+
+- `package-lock.json` dependency `"version"` lines (npm packages)
+- `.github/workflows/main.yml` — `node-version` / `java-version` are toolchain, not app version
+- `android/settings.gradle` / `android/build.gradle` — React Native Gradle versions
+- XML `<?xml version="1.0"?>` headers in drawables/mipmaps
+
+---
+
+## Recommended workflow (agent scope)
+
+```bash
+# 1. Set semver (updates package.json + package-lock.json)
+npm version X.Y.Z --no-git-tag-version
+
+# 2. Edit manually (same semver everywhere):
+#    - app.json → expo.version + expo.runtimeVersion (unless user said OTA-only)
+#    - android/app/build.gradle → versionName + versionCode (+1)
+#    - android/.../strings.xml → expo_runtime_version
+
+# 3. Verify
+grep -r "X.Y.Z" app.json package.json android/app/build.gradle android/app/src/main/res/values/strings.xml
+grep versionCode android/app/build.gradle
+
+# 4. Propose commit (user approves) — chore: bump version to X.Y.Z
+```
+
+### OTA-only bump (user must say so explicitly)
+
+- **Do not** change `runtimeVersion`, `versionCode`, or iOS build number
+- User runs `eas update` themselves when ready
+
+### Out of scope for agents (user handles manually)
+
+- `eas update`, `eas build`, Play Store / App Store submission
+- `npx expo prebuild` (unless user explicitly asks)
+- Post-bump deploy or release instructions in chat
+
+---
+
+## Quick checklist (copy before release)
+
+- [ ] `app.json` → `expo.version`
+- [ ] `app.json` → `expo.runtimeVersion` (if binary changes)
+- [ ] `package.json` → `version`
+- [ ] `package-lock.json` → root `version` (via `npm version`)
+- [ ] `android/app/build.gradle` → `versionName`
+- [ ] `android/app/build.gradle` → `versionCode` (+1 for Play Store)
+- [ ] `android/app/src/main/res/values/strings.xml` → `expo_runtime_version`
+- [ ] `ios/.../Info.plist` (if `ios/` exists) → short version + build number
+- [ ] Commit: `chore: bump version to X.Y.Z`
+
+---
+
+## Conventions for agents
+
+- Bump **every file in the checklist** in one logical commit (`chore:` prefix).
+- Never bump only `package.json` — Android and Expo OTA strings will drift.
+- Increment Android **`versionCode`** on each version bump (keeps future Play uploads valid).
+- Ask the user whether the bump is **OTA-only** or **includes `runtimeVersion`** before editing.
+- **Do not** run or suggest `eas build`, `eas update`, Play Store steps, or prebuild unless the user asks.
+- After the commit proposal, **stop** — user runs EAS when ready.
