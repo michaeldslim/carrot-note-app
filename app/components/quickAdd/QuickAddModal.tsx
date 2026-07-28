@@ -3,7 +3,7 @@
  This software is free to use, modify, and share under 
  the terms of the GNU General Public License v3.
 */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -24,6 +24,7 @@ import { useTheme } from '../../theme/ThemeContext';
 import { ui } from '../../theme/ui';
 import { Note } from '../../screens/types';
 import CustomDropdown from '../../screens/CustomDropdown';
+import DateRangePicker from '../dateRangePicker/DateRangePicker';
 
 interface QuickAddModalProps {
   visible: boolean;
@@ -50,7 +51,18 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
   const { colors } = useTheme();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Select an option');
+  const [startDate, setStartDate] = useState(selectedDay);
+  const [endDate, setEndDate] = useState(selectedDay);
+  const [showDateRange, setShowDateRange] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setStartDate(selectedDay);
+      setEndDate(selectedDay);
+      setShowDateRange(false);
+    }
+  }, [visible, selectedDay]);
 
   const pickerItems = useMemo(
     () => ['Select an option', ...categories],
@@ -62,6 +74,9 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
   const reset = () => {
     setTitle('');
     setCategory('Select an option');
+    setStartDate(selectedDay);
+    setEndDate(selectedDay);
+    setShowDateRange(false);
   };
 
   const handleClose = () => {
@@ -77,8 +92,8 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
     createdAt: new Date().toISOString(),
     category,
     userId,
-    startDate: selectedDay,
-    endDate: selectedDay,
+    startDate,
+    endDate,
   });
 
   const handleSave = async () => {
@@ -120,14 +135,37 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
     }
   };
 
-  const dayLabel = useMemo(() => {
-    const d = new Date(selectedDay + 'T00:00:00');
+  const formatDayLabel = (day: string) => {
+    const d = new Date(day + 'T00:00:00');
     return d.toLocaleDateString(undefined, {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
     });
-  }, [selectedDay]);
+  };
+
+  const dayLabel = useMemo(() => formatDayLabel(startDate), [startDate]);
+
+  const isMultiDay = endDate !== startDate;
+  const dateActionLabel = isMultiDay ? 'Edit dates' : 'Add end date';
+
+  const handleDateRangeConfirm = (start: string, end: string) => {
+    setStartDate(start);
+    setEndDate(end);
+    setShowDateRange(false);
+  };
+
+  const handleDateRangeClear = () => {
+    setStartDate(selectedDay);
+    setEndDate(selectedDay);
+    setShowDateRange(false);
+  };
+
+  const handleUseSingleDay = () => {
+    setStartDate(selectedDay);
+    setEndDate(selectedDay);
+    setShowDateRange(false);
+  };
 
   const styles = useMemo(
     () =>
@@ -184,7 +222,36 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
         dateLabelText: {
           fontSize: 12,
           color: colors.textMuted,
-          marginBottom: 10,
+          marginBottom: 6,
+        },
+        dateRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 12,
+        },
+        addEndDateBtn: {
+          paddingHorizontal: 10,
+          paddingVertical: 6,
+          borderRadius: ui.radius.pill,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.surfaceSoft,
+        },
+        addEndDateText: {
+          fontSize: 12,
+          fontWeight: '600',
+          color: colors.primaryDark,
+        },
+        singleDayBtn: {
+          alignSelf: 'flex-start',
+          marginBottom: 12,
+          paddingVertical: 4,
+        },
+        singleDayText: {
+          fontSize: 12,
+          fontWeight: '600',
+          color: colors.textSecondary,
         },
         input: {
           fontSize: 16,
@@ -281,15 +348,43 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
             </View>
 
             <View style={styles.body}>
-              {/* Date label */}
-              <Text style={styles.dateLabelText}>
-                <MaterialCommunityIcons
-                  name="calendar-check"
-                  size={12}
-                  color={colors.textMuted}
-                />{' '}
-                {dayLabel}
-              </Text>
+              {showDateRange ? (
+                <>
+                  <DateRangePicker
+                    startDate={startDate}
+                    endDate={endDate}
+                    onConfirm={handleDateRangeConfirm}
+                    onClear={handleDateRangeClear}
+                  />
+                  <TouchableOpacity
+                    style={styles.singleDayBtn}
+                    onPress={handleUseSingleDay}
+                    accessibilityLabel="Use single day only"
+                  >
+                    <Text style={styles.singleDayText}>Use single day only</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <View style={styles.dateRow}>
+                  <Text style={styles.dateLabelText}>
+                    <MaterialCommunityIcons
+                      name="calendar-check"
+                      size={12}
+                      color={colors.textMuted}
+                    />{' '}
+                    {endDate !== startDate
+                      ? `${formatDayLabel(startDate)} → ${formatDayLabel(endDate)}`
+                      : dayLabel}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.addEndDateBtn}
+                    onPress={() => setShowDateRange(true)}
+                    accessibilityLabel={dateActionLabel}
+                  >
+                    <Text style={styles.addEndDateText}>{dateActionLabel}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {/* Category picker */}
               {Platform.OS === 'ios' ? (
