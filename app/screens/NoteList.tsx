@@ -38,8 +38,13 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ui } from '../theme/ui';
 import { useTheme } from '../theme/ThemeContext';
 import CalendarModal from '../components/calendarModal/CalendarModal';
+import SchedulerFAB from '../components/fab/SchedulerFAB';
+import QuickAddModal from '../components/quickAdd/QuickAddModal';
 
 type NoteListProps = NativeStackScreenProps<RootStackList, 'List'>;
+
+const toDateString = (iso: string) => iso.slice(0, 10);
+const todayStr = toDateString(new Date().toISOString());
 
 const NoteList = ({ navigation }: NoteListProps) => {
   const isFocused = useIsFocused();
@@ -49,6 +54,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [categories, setCategories] = useState<string[]>(['Select an option']);
   const [calendarVisible, setCalendarVisible] = useState<boolean>(false);
+  const [quickAddVisible, setQuickAddVisible] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const auth = FIREBASE_AUTH;
   const userId = auth.currentUser?.uid;
@@ -144,6 +150,17 @@ const NoteList = ({ navigation }: NoteListProps) => {
     }
   }, [userId]);
 
+  const reloadNotes = useCallback(async () => {
+    if (!userId) return;
+    const fetchedNotes = await fetchNotes(userId);
+    setNotes(fetchedNotes);
+  }, [userId]);
+
+  const quickAddCategories = useMemo(
+    () => categories.slice(1),
+    [categories],
+  );
+
   const { colors } = useTheme();
 
   const styles = useMemo(() => {
@@ -170,7 +187,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
       listContentContainer: {
         paddingHorizontal: 2,
         paddingVertical: 5,
-        paddingBottom: 20,
+        paddingBottom: 96,
       },
       listFooter: {
         height: 20,
@@ -232,6 +249,18 @@ const NoteList = ({ navigation }: NoteListProps) => {
         color: colors.textSecondary,
         fontSize: 14,
         textAlign: 'center',
+        marginBottom: 14,
+      },
+      emptyStateButton: {
+        paddingHorizontal: 18,
+        paddingVertical: 10,
+        borderRadius: ui.radius.pill,
+        backgroundColor: colors.primary,
+      },
+      emptyStateButtonText: {
+        color: colors.surface,
+        fontSize: 14,
+        fontWeight: '700',
       },
     });
   }, [colors]);
@@ -240,6 +269,22 @@ const NoteList = ({ navigation }: NoteListProps) => {
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity
+            onPress={() => setQuickAddVisible(true)}
+            style={{
+              paddingHorizontal: 10,
+              paddingVertical: 7,
+              backgroundColor: colors.surfaceSoft,
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 99,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+            accessibilityLabel="Add event"
+          >
+            <MaterialCommunityIcons name="plus" size={18} color={colors.primaryDark} />
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setCalendarVisible(true)}
             style={{
@@ -273,7 +318,9 @@ const NoteList = ({ navigation }: NoteListProps) => {
         </View>
       ),
     });
-  }, [navigation, colors, setCalendarVisible]);
+  }, [navigation, colors]);
+
+  const openQuickAdd = useCallback(() => setQuickAddVisible(true), []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -339,8 +386,15 @@ const NoteList = ({ navigation }: NoteListProps) => {
                   <View style={styles.emptyState}>
                     <Text style={styles.emptyStateTitle}>No notes yet</Text>
                     <Text style={styles.emptyStateText}>
-                      No notes yet. Add events from the calendar screen.
+                      Tap + to add your first event.
                     </Text>
+                    <TouchableOpacity
+                      style={styles.emptyStateButton}
+                      onPress={openQuickAdd}
+                      accessibilityLabel="Add event"
+                    >
+                      <Text style={styles.emptyStateButtonText}>Add event</Text>
+                    </TouchableOpacity>
                   </View>
                 )
               }
@@ -350,6 +404,22 @@ const NoteList = ({ navigation }: NoteListProps) => {
             />
           </View>
         </GestureHandlerRootView>
+      <SchedulerFAB onPress={openQuickAdd} />
+      <QuickAddModal
+        visible={quickAddVisible}
+        selectedDay={todayStr}
+        categories={quickAddCategories}
+        userId={userId}
+        onClose={() => setQuickAddVisible(false)}
+        onSaved={() => {
+          setQuickAddVisible(false);
+          reloadNotes();
+        }}
+        onMoreDetails={(note) => {
+          setQuickAddVisible(false);
+          navigation.navigate('Detail', { noteItem: note, isJustCreated: true });
+        }}
+      />
       <CalendarModal
         visible={calendarVisible}
         notes={notes}
