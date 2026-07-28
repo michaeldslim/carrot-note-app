@@ -22,7 +22,7 @@ export type RootStackList = {
   Loading: undefined;
   Calendar: undefined;
   List: undefined;
-  Detail: { noteItem: Note };
+  Detail: { noteItem: Note; isJustCreated?: boolean };
   Login: undefined;
   Signup: undefined;
   Logout: undefined;

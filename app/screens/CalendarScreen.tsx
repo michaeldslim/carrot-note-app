@@ -322,7 +322,7 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
         }}
         onMoreDetails={(note) => {
           setQuickAddVisible(false);
-          navigation.navigate('Detail', { noteItem: note });
+          navigation.navigate('Detail', { noteItem: note, isJustCreated: true });
         }}
       />
     </SafeAreaView>

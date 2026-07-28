@@ -34,7 +34,7 @@ import DateRangePicker from '../components/dateRangePicker/DateRangePicker';
 type NoteDetailProps = NativeStackScreenProps<RootStackList, 'Detail'>;
 
 const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
-  const { noteItem } = route.params;
+  const { noteItem, isJustCreated = false } = route.params;
   const { colors } = useTheme();
 
   const [editTitle, setEditTitle] = useState<string>(noteItem.title ?? '');
@@ -228,11 +228,15 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
 
   const normalizedOriginalTitle = (noteItem.title ?? '').trim();
   const normalizedCurrentTitle = editTitle.trim();
-  const isDisabled =
-    editNote === noteItem.note &&
+  const normalizedOriginalNote = (noteItem.note ?? '').trim();
+  const normalizedCurrentNote = editNote.trim();
+  const isUnchanged =
+    normalizedCurrentNote === normalizedOriginalNote &&
     normalizedCurrentTitle === normalizedOriginalTitle &&
     editStartDate === noteItem.startDate &&
     editEndDate === noteItem.endDate;
+  const isDisabled = !isJustCreated && isUnchanged;
+  const updateButtonText = isJustCreated ? 'Save details' : 'Update note';
 
   const commonButtonStyles = [styles.button, styles.buttonText];
 
@@ -278,7 +282,7 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
             disabled={isDisabled}
             styles={styles}
             onPress={!isDisabled ? handleUpdateNote : undefined}
-            text="Update note"
+            text={updateButtonText}
           />
           <NoteActionButton
             styles={[...commonButtonStyles, styles.deleteButton]}
