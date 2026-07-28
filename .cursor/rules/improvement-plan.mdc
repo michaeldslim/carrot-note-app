@@ -15,9 +15,9 @@ Use this rule when implementing features, refactors, or UX polish. Prioritize ph
 - **Themes:** light, darkGreen, darkTeal via `ThemeContext`
 - **Pain points:** No Firestore real-time sync; duplicated fetch/category logic in `NoteList` + `CalendarScreen`; inline header styles; limited test coverage; README still describes generic todo scaffold
 - **Scheduling UX (user-reported):**
-  - **No date range on create** — `QuickAddModal` hardcodes `startDate`/`endDate` to the selected day; multi-day events require save → open Detail → edit dates
-  - **Range looks like many tasks** — `CalendarScreen` marks every day in `startDate…endDate` with dots and lists the same note on each day's agenda, so one ranged task reads as duplicate events
-  - **Add flow not discoverable** — FAB (+) exists only on Calendar; NoteList has no add affordance and empty state tells users to go back to Calendar; icon-only FAB is easy to miss on first launch
+  - ~~**No date range on create**~~ — **done** (§2.0.1): `QuickAddModal` supports date range on create
+  - **Range on calendar** — **accepted as-is** (§2.0.2 skipped): per-day dots and agenda rows for ranged events are fine; do not implement period marks or agenda deduplication
+  - ~~**Add flow not discoverable**~~ — **done** (§2.0.3): NoteList has FAB, header +, and empty-state CTA; Calendar already has FAB
 
 ---
 
@@ -63,52 +63,38 @@ Extract duplicated logic from `NoteList.tsx` and `CalendarScreen.tsx`:
 
 Match existing design tokens in `app/theme/ui.ts` and `themes.ts`. Do not introduce a second design system.
 
-**Prioritize §2.0 (scheduling UX) before other Phase 2 polish** — these are active user pain points.
+**Prioritize Phase 1 next** — §2.0 scheduling UX is complete (2.0.1 done, 2.0.2 skipped, 2.0.3 done).
 
-### 2.0 Scheduling & event-creation UX (high priority)
+### 2.0 Scheduling & event-creation UX — **complete**
 
-#### 2.0.1 Date range in QuickAdd (create flow)
+#### 2.0.1 Date range in QuickAdd (create flow) — **done**
 
 **Problem:** `QuickAddModal` sets both `startDate` and `endDate` to `selectedDay` only. Users cannot pick a range until they save and edit in `NoteDetail`.
 
-**Target behavior:**
-- Reuse existing `DateRangePicker` from `NoteDetail` inside `QuickAddModal`
-- Default: start = selected calendar day, end = same day (single-day event)
-- Optional end date — collapsed by default ("Add end date" toggle) to keep quick-add fast
-- Save and "More…" both respect the chosen range; notifications use `endDate` as today
+**Implemented:** `DateRangePicker` in `QuickAddModal` with "Add end date" / "Edit dates" toggle; Save and More… respect the chosen range.
 
-**Files:** `app/components/quickAdd/QuickAddModal.tsx`, optionally extract shared `NoteDateFields` from `NoteDetail`
+#### 2.0.2 One ranged task ≠ many calendar events — **skipped (do not implement)**
 
-#### 2.0.2 One ranged task ≠ many calendar events
+**Decision:** Current behavior is acceptable — ranged events show a dot on each day in the range and appear in each day's agenda. **Do not** change calendar marking or agenda filtering for this.
 
-**Problem:** `CalendarScreen` `markedDates` loops every day from `start` to `end` and pushes a dot per day; `agendaNotes` includes the note on every day in the range. One multi-day task appears as separate tasks on each day.
+~~Original problem: one multi-day task reads as duplicate events on the calendar.~~
 
-**Target behavior:**
-- **Calendar marks:** use `react-native-calendars` **period** marking (`markingType: 'period'`) so a range renders as one connected bar, not independent dots per day
-- **Agenda list:** show the note only on its **start date** (or on start + end if product prefers bookends); middle days show the period bar but not a duplicate row
-- **NoteItem / list:** always show full range label (`Jul 28 → Jul 30`) so span is clear outside Calendar
-- Add a shared helper `getNoteDateRange(note) → { start, end }` and `noteOccursOnDay(note, day)` used by Calendar, NoteList filters, and `CalendarModal`
+~~Planned changes (cancelled):~~
+- ~~Period marking (`markingType: 'period'`)~~
+- ~~Agenda deduplication (start date only)~~
+- ~~`app/utils/noteDates.ts` helpers~~
 
-```typescript
-// app/utils/noteDates.ts
-export function noteOccursOnDay(note: Note, day: string): boolean;
-export function getMarkedPeriods(notes: Note[]): PeriodMark[];
-```
+#### 2.0.3 Discoverable "add event" entry points — **done**
 
-**Do not** duplicate the note in Firestore per day — keep one document with `startDate` + `endDate`.
+**Problem:** App lands on Calendar; FAB is icon-only (`SchedulerFAB`). NoteList had no add button — empty state told users to go back to Calendar.
 
-#### 2.0.3 Discoverable "add event" entry points
+**Implemented:**
+- **NoteList:** `SchedulerFAB` + `QuickAddModal` (default `selectedDay` = today)
+- **NoteList:** header **+** beside calendar and settings
+- **NoteList empty state:** "Add event" CTA
+- **Calendar:** existing FAB + empty agenda copy ("Tap + to add…")
 
-**Problem:** App lands on Calendar; FAB is icon-only (`SchedulerFAB`). NoteList has no add button — empty state says *"Add events from the calendar screen."*
-
-**Target behavior:**
-- **NoteList:** add the same `SchedulerFAB` + `QuickAddModal` (default `selectedDay` = today)
-- **Both screens:** optional header **+** action (text or icon) beside Settings / List toggle — visible without scrolling
-- **FAB label:** on first 1–3 sessions, show extended FAB (`icon` + "Add event") or a one-time coach mark pointing at +
-- **Empty states:** primary CTA button "Add event" that opens QuickAdd (not only instructional copy)
-- **Calendar empty agenda:** keep "Tap + to add…" but also render a tappable **Add event** button inline
-
-**Files:** `NoteList.tsx`, `CalendarScreen.tsx`, `SchedulerFAB.tsx` (optional `label` prop), shared `useQuickAdd` hook
+~~Optional polish (not planned):~~ Calendar header +, extended FAB label, inline Calendar empty CTA.
 
 ### 2.1 Shared UI primitives
 Create small reusable components under `app/components/ui/`:
@@ -127,8 +113,7 @@ Create small reusable components under `app/components/ui/`:
 - **Haptic feedback** on swipe-delete and complete (expo-haptics)
 
 ### 2.3 Calendar screen UX
-- Period/range bars for multi-day events (see §2.0.2) — prefer over per-day dot spam
-- Dot or accent on **start day only** for single-day events (count or color by category)
+- Dot indicators on calendar days (count or color by category) — per-day marks for ranges are intentional (§2.0.2 skipped)
 - "Today" quick-jump button
 - Week view toggle (optional, phase 2b)
 - Unify QuickAdd + NoteDetail field layout for consistency (shared date + category fields)
@@ -258,7 +243,6 @@ Light engagement layer — do not block core productivity features.
 
 ### 5.1 Tests
 - `useNotes` hook with mocked Firestore
-- `noteOccursOnDay` / `getMarkedPeriods` — single-day, multi-day, missing endDate
 - `NoteItem` swipe + expired state
 - Checklist completion logic
 - Recurring note spawn on complete
@@ -282,9 +266,9 @@ Light engagement layer — do not block core productivity features.
 
 | Priority | Item | Effort |
 |----------|------|--------|
-| P0 | Date range in QuickAdd (§2.0.1) | S |
-| P0 | Range calendar display — period marks, no duplicate agenda rows (§2.0.2) | M |
-| P0 | Add-event affordances on List + Calendar (§2.0.3) | S |
+| ~~P0~~ | ~~Date range in QuickAdd (§2.0.1)~~ | done |
+| ~~P0~~ | ~~Range calendar display (§2.0.2)~~ | skipped |
+| ~~P0~~ | ~~Add-event affordances (§2.0.3)~~ | done |
 | P0 | `useNotes` + `useCategories` hooks | M |
 | P0 | Real-time `onSnapshot` | M |
 | P1 | Shared UI primitives + search/sort | M |
@@ -307,4 +291,5 @@ S = small, M = medium, L = large
 - **No breaking changes:** Old notes without `type` must keep working
 - **Firebase:** User-scoped queries only (`where('userId', '==', userId)`)
 - **Notifications:** Always cancel on delete; upsert on date/time change
+- **Do not implement §2.0.2** — ranged events on the calendar/agenda stay as-is unless the user reopens this item
 - **Do not** add new dependencies without justification (prefer expo-* packages)
