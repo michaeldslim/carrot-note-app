@@ -14,6 +14,9 @@ import {
   deleteField,
   query,
   where,
+  onSnapshot,
+  type DocumentData,
+  type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { Note } from '../screens/types';
 import {
@@ -27,33 +30,60 @@ import { Alert } from 'react-native';
 
 const notesCollection = collection(FIRESTORE_DB, 'notes');
 
+export function mapDocToNote(
+  docSnap: QueryDocumentSnapshot<DocumentData>,
+): Note {
+  const data = docSnap.data();
+
+  return {
+    id: docSnap.id,
+    title: typeof data.title === 'string' ? data.title : undefined,
+    note: typeof data.note === 'string' ? data.note : '',
+    completed: Boolean(data.completed),
+    createdAt: String(data.createdAt),
+    category:
+      typeof data.category === 'string' ? (data.category as string) : undefined,
+    userId: typeof data.userId === 'string' ? (data.userId as string) : undefined,
+    startDate: typeof data.startDate === 'string' ? data.startDate : undefined,
+    endDate: typeof data.endDate === 'string' ? data.endDate : undefined,
+  };
+}
+
+function sortNotesByCreatedAt(notes: Note[]): Note[] {
+  return notes.sort(
+    (a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+}
+
+export function subscribeToNotes(
+  userId: string,
+  onNext: (notes: Note[]) => void,
+  onError: (error: Error) => void,
+): () => void {
+  const notesRef = collection(FIRESTORE_DB, 'notes');
+  const q = query(notesRef, where('userId', '==', userId));
+
+  return onSnapshot(
+    q,
+    (querySnapshot) => {
+      const notes = querySnapshot.docs.map(mapDocToNote);
+      onNext(sortNotesByCreatedAt(notes));
+    },
+    (error) => {
+      console.error('Error subscribing to notes:', error);
+      onError(error);
+    },
+  );
+}
+
 export const fetchNotes = async (userId: string): Promise<Note[]> => {
   try {
     const notesRef = collection(FIRESTORE_DB, 'notes');
     const q = query(notesRef, where('userId', '==', userId));
     const querySnapshot = await getDocs(q);
-    const notes: Note[] = querySnapshot.docs.map((docSnap) => {
-      const data = docSnap.data() as any;
-
-      return {
-        id: docSnap.id,
-        title: typeof data.title === 'string' ? data.title : undefined,
-        note: typeof data.note === 'string' ? data.note : '',
-        completed: Boolean(data.completed),
-        createdAt: String(data.createdAt),
-        category:
-          typeof data.category === 'string' ? (data.category as string) : undefined,
-        userId: typeof data.userId === 'string' ? (data.userId as string) : undefined,
-        startDate: typeof data.startDate === 'string' ? data.startDate : undefined,
-        endDate: typeof data.endDate === 'string' ? data.endDate : undefined,
-      };
-    });
-
-    // Sort by createdAt in descending order (newest first)
-    return notes.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
+    const notes = querySnapshot.docs.map(mapDocToNote);
+    return sortNotesByCreatedAt(notes);
   } catch (error) {
     console.error('Error fetching notes:', error);
     return [];

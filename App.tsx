@@ -6,6 +6,7 @@
 import React, { useEffect, Component } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import RootNavigator from './app/navigation/RootNavigator';
+import { NotesProvider } from './app/context/NotesContext';
 import { ThemeProvider } from './app/theme/ThemeContext';
 import * as WebBrowser from 'expo-web-browser';
 import {
@@ -71,7 +72,9 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <RootNavigator />
+        <NotesProvider>
+          <RootNavigator />
+        </NotesProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
