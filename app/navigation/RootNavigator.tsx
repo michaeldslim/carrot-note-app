@@ -12,7 +12,6 @@ import NoteList from '../screens/NoteList';
 import CalendarScreen from '../screens/CalendarScreen';
 import Loading from '../screens/Loading';
 import NoteDetail from '../screens/NoteDetail';
-import { Note } from '../screens/types';
 import Login from '../screens/Login';
 import Signup from '../screens/Signup';
 import Settings from '../screens/Settings';
@@ -22,7 +21,7 @@ export type RootStackList = {
   Loading: undefined;
   Calendar: undefined;
   List: undefined;
-  Detail: { noteItem: Note; isJustCreated?: boolean };
+  Detail: { noteId: string; isJustCreated?: boolean };
   Login: undefined;
   Signup: undefined;
   Logout: undefined;

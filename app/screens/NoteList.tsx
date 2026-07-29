@@ -13,22 +13,11 @@ import {
   ScrollView,
   RefreshControl,
   SafeAreaView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import {
-  fetchNotes,
-  deleteNote,
-  fetchCategories,
-  addCategories,
-} from '../service/firebaseService';
-import {
-  cancelDeadlineReminder,
-  requestNotificationPermission,
-} from '../service/notificationService';
-import { Note } from './types';
+import { requestNotificationPermission } from '../service/notificationService';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackList } from '../navigation/RootNavigator';
 import { useIsFocused } from '@react-navigation/native';
@@ -40,6 +29,9 @@ import { useTheme } from '../theme/ThemeContext';
 import CalendarModal from '../components/calendarModal/CalendarModal';
 import SchedulerFAB from '../components/fab/SchedulerFAB';
 import QuickAddModal from '../components/quickAdd/QuickAddModal';
+import { useNotesContext } from '../context/NotesContext';
+import { useCategories } from '../hooks/useCategories';
+import { useNoteFilters } from '../hooks/useNoteFilters';
 
 type NoteListProps = NativeStackScreenProps<RootStackList, 'List'>;
 
@@ -48,67 +40,27 @@ const todayStr = toDateString(new Date().toISOString());
 
 const NoteList = ({ navigation }: NoteListProps) => {
   const isFocused = useIsFocused();
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [categories, setCategories] = useState<string[]>(['Select an option']);
-  const [calendarVisible, setCalendarVisible] = useState<boolean>(false);
-  const [quickAddVisible, setQuickAddVisible] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const auth = FIREBASE_AUTH;
-  const userId = auth.currentUser?.uid;
+  const {
+    notes,
+    loading: isLoading,
+    refreshing,
+    refresh,
+    deleteNoteOptimistic,
+  } = useNotesContext();
+  const { categories, quickAddCategories } = useCategories(
+    FIREBASE_AUTH.currentUser?.uid,
+    { includeSelectOption: true, isFocused },
+  );
+  const {
+    filteredNotes,
+    selectedCategory,
+    setSelectedCategory,
+    getCountByCategory,
+  } = useNoteFilters(notes);
+  const [calendarVisible, setCalendarVisible] = React.useState(false);
+  const [quickAddVisible, setQuickAddVisible] = React.useState(false);
+  const userId = FIREBASE_AUTH.currentUser?.uid;
   const hasRequestedNotificationPermissionRef = useRef<boolean>(false);
-
-  const filterNotes = useCallback(() => {
-    if (selectedCategory === 'All') {
-      setFilteredNotes(notes);
-    } else {
-      setFilteredNotes(
-        notes.filter((note) => note.category === selectedCategory),
-      );
-    }
-  }, [notes, selectedCategory]);
-
-  useEffect(() => {
-    const loadNotes = async () => {
-      setIsLoading(true);
-      if (userId) {
-        const fetchedNotes = await fetchNotes(userId);
-        setNotes(fetchedNotes);
-      }
-      setIsLoading(false);
-    };
-    loadNotes().then();
-  }, [userId, isFocused]);
-
-  useEffect(() => {
-    const loadCategories = async () => {
-      if (userId) {
-        try {
-          const fetchedCategories = await fetchCategories(userId);
-          if (!fetchedCategories || fetchedCategories.length === 0) {
-            const initialCategories = ['Home', 'Shopping'];
-            await addCategories(userId, initialCategories);
-            setCategories(['Select an option', ...initialCategories]);
-          } else {
-            setCategories(['Select an option', ...fetchedCategories]);
-          }
-        } catch (error) {
-          if (error instanceof Error) {
-            Alert.alert('Error', `Failed to load categories: ${error.message}`);
-          } else {
-            Alert.alert('Error', 'An unknown error occurred');
-          }
-        }
-      }
-    };
-    loadCategories().then();
-  }, [userId, isFocused]);
-
-  useEffect(() => {
-    filterNotes();
-  }, [notes, selectedCategory, filterNotes]);
 
   useEffect(() => {
     const ensureNotificationPermission = async () => {
@@ -120,45 +72,12 @@ const NoteList = ({ navigation }: NoteListProps) => {
     ensureNotificationPermission().then();
   }, [userId]);
 
-  const getTotalNotesByCategory = (category: string) => {
-    if (category === 'All') {
-      return notes.length;
-    }
-    return notes.filter((note) => note.category === category).length;
-  };
-
-  const confirmDelete = async (noteId: string) => {
-    if (!noteId) return;
-    if (userId) {
-      await deleteNote(noteId);
-      await cancelDeadlineReminder(noteId);
-      const fetchedNotes = await fetchNotes(userId);
-      setNotes(fetchedNotes);
-    }
-  };
-
-  const onRefresh = useCallback(async () => {
-    if (!userId) return;
-    setRefreshing(true);
-    try {
-      const fetchedNotes = await fetchNotes(userId);
-      setNotes(fetchedNotes);
-    } catch (error) {
-      console.error('Error refreshing notes:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [userId]);
-
-  const reloadNotes = useCallback(async () => {
-    if (!userId) return;
-    const fetchedNotes = await fetchNotes(userId);
-    setNotes(fetchedNotes);
-  }, [userId]);
-
-  const quickAddCategories = useMemo(
-    () => categories.slice(1),
-    [categories],
+  const confirmDelete = useCallback(
+    async (noteId: string) => {
+      if (!noteId) return;
+      await deleteNoteOptimistic(noteId);
+    },
+    [deleteNoteOptimistic],
   );
 
   const { colors } = useTheme();
@@ -352,7 +271,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
                           styles.filterButtonTextSelected,
                       ]}
                     >
-                      {category} ({getTotalNotesByCategory(category)})
+                      {category} ({getCountByCategory(category)})
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -364,13 +283,13 @@ const NoteList = ({ navigation }: NoteListProps) => {
               data={filteredNotes}
               keyExtractor={(item) => item.id}
               refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                <RefreshControl refreshing={refreshing} onRefresh={refresh} />
               }
               renderItem={({ item }) => (
                 <NoteItem
                   note={item}
                   onPress={() =>
-                    navigation.navigate('Detail', { noteItem: item })
+                    navigation.navigate('Detail', { noteId: item.id })
                   }
                   confirmDelete={confirmDelete}
                 />
@@ -413,18 +332,17 @@ const NoteList = ({ navigation }: NoteListProps) => {
         onClose={() => setQuickAddVisible(false)}
         onSaved={() => {
           setQuickAddVisible(false);
-          reloadNotes();
         }}
-        onMoreDetails={(note) => {
+        onMoreDetails={(noteId) => {
           setQuickAddVisible(false);
-          navigation.navigate('Detail', { noteItem: note, isJustCreated: true });
+          navigation.navigate('Detail', { noteId, isJustCreated: true });
         }}
       />
       <CalendarModal
         visible={calendarVisible}
         notes={notes}
         onClose={() => setCalendarVisible(false)}
-        onNotePress={(note) => navigation.navigate('Detail', { noteItem: note })}
+        onNotePress={(note) => navigation.navigate('Detail', { noteId: note.id })}
       />
     </SafeAreaView>
   );

@@ -18,8 +18,7 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { addNote } from '../../service/firebaseService';
-import { upsertDeadlineReminder } from '../../service/notificationService';
+import { createNote } from '../../service/noteActions';
 import { useTheme } from '../../theme/ThemeContext';
 import { ui } from '../../theme/ui';
 import { Note } from '../../screens/types';
@@ -35,8 +34,8 @@ interface QuickAddModalProps {
   onClose: () => void;
   /** Called after the note is saved so the parent can refresh */
   onSaved: () => void;
-  /** Called after saving when the user taps "More…" — passes the saved note for navigation */
-  onMoreDetails: (note: Note) => void;
+  /** Called after saving when the user taps "More…" — passes the new note id for navigation */
+  onMoreDetails: (noteId: string) => void;
 }
 
 const QuickAddModal: React.FC<QuickAddModalProps> = ({
@@ -101,13 +100,8 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
     setIsSaving(true);
     try {
       const payload = buildNotePayload();
-      const newId = await addNote(payload);
-      await upsertDeadlineReminder({
-        id: newId,
-        title: payload.title,
-        note: payload.note,
-        endDate: payload.endDate,
-      });
+      const newId = await createNote(payload);
+      if (!newId) return;
       reset();
       onSaved();
     } finally {
@@ -121,15 +115,10 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
     setIsSaving(true);
     try {
       const payload = buildNotePayload();
-      const newId = await addNote(payload);
-      await upsertDeadlineReminder({
-        id: newId,
-        title: payload.title,
-        note: payload.note,
-        endDate: payload.endDate,
-      });
+      const newId = await createNote(payload);
+      if (!newId) return;
       reset();
-      onMoreDetails({ ...payload, id: newId });
+      onMoreDetails(newId);
     } finally {
       setIsSaving(false);
     }

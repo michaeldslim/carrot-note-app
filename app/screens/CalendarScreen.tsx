@@ -18,20 +18,14 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useIsFocused } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FIREBASE_AUTH } from '../../firebaseConfig';
-import {
-  fetchNotes,
-  deleteNote,
-  fetchCategories,
-  addCategories,
-} from '../service/firebaseService';
-import { cancelDeadlineReminder } from '../service/notificationService';
 import { useTheme } from '../theme/ThemeContext';
 import { ui } from '../theme/ui';
-import { Note } from './types';
 import { RootStackList } from '../navigation/RootNavigator';
 import NoteItem from './NoteItem';
 import SchedulerFAB from '../components/fab/SchedulerFAB';
 import QuickAddModal from '../components/quickAdd/QuickAddModal';
+import { useNotesContext } from '../context/NotesContext';
+import { useCategories } from '../hooks/useCategories';
 
 type CalendarScreenProps = NativeStackScreenProps<RootStackList, 'Calendar'>;
 
@@ -41,43 +35,12 @@ const todayStr = toDateString(new Date().toISOString());
 const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
   const { colors, themeName } = useTheme();
   const isFocused = useIsFocused();
-  const auth = FIREBASE_AUTH;
-  const userId = auth.currentUser?.uid;
+  const userId = FIREBASE_AUTH.currentUser?.uid;
+  const { notes, loading: isLoading, deleteNoteOptimistic } = useNotesContext();
+  const { quickAddCategories } = useCategories(userId, { isFocused });
 
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
   const [selectedDay, setSelectedDay] = useState<string>(todayStr);
-  const [isLoading, setIsLoading] = useState(true);
   const [quickAddVisible, setQuickAddVisible] = useState(false);
-
-  const loadNotes = useCallback(async () => {
-    if (!userId) return;
-    setIsLoading(true);
-    const fetched = await fetchNotes(userId);
-    setNotes(fetched);
-    setIsLoading(false);
-  }, [userId]);
-
-  useEffect(() => {
-    if (isFocused) loadNotes();
-  }, [isFocused, loadNotes]);
-
-  useEffect(() => {
-    const loadCategories = async () => {
-      if (!userId) return;
-      try {
-        const fetched = await fetchCategories(userId);
-        if (!fetched || fetched.length === 0) {
-          const initial = ['Home', 'Shopping'];
-          await addCategories(userId, initial);
-          setCategories(initial);
-        } else {
-          setCategories(fetched);
-        }
-      } catch {}
-    };
-    loadCategories();
-  }, [userId, isFocused]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -108,7 +71,6 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
     });
   }, [navigation, colors]);
 
-  // Build marked dates for the calendar
   const markedDates = useMemo(() => {
     const map: Record<string, any> = {};
 
@@ -130,7 +92,6 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
       }
     });
 
-    // Highlight selected day
     map[selectedDay] = {
       ...(map[selectedDay] || {}),
       selected: true,
@@ -138,14 +99,12 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
       selectedTextColor: colors.surface,
     };
 
-    // Highlight today
     if (!map[todayStr]) map[todayStr] = {};
     map[todayStr] = { ...(map[todayStr] || {}), today: true };
 
     return map;
   }, [notes, selectedDay, colors]);
 
-  // Filter notes/events for the selected day
   const agendaNotes = useMemo(() => {
     return notes.filter((note) => {
       if (note.startDate) {
@@ -159,13 +118,9 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
 
   const handleDelete = useCallback(
     async (noteId: string) => {
-      if (!userId) return;
-      await deleteNote(noteId);
-      await cancelDeadlineReminder(noteId);
-      const fetched = await fetchNotes(userId);
-      setNotes(fetched);
+      await deleteNoteOptimistic(noteId);
     },
-    [userId],
+    [deleteNoteOptimistic],
   );
 
   const formattedDay = useMemo(() => {
@@ -236,7 +191,6 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Full-screen calendar at the top */}
       <View style={styles.calendarWrapper}>
         <Calendar
           key={themeName}
@@ -261,7 +215,6 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
         />
       </View>
 
-      {/* Agenda panel for selected day */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -287,7 +240,7 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
           renderItem={({ item }) => (
             <NoteItem
               note={item}
-              onPress={() => navigation.navigate('Detail', { noteItem: item })}
+              onPress={() => navigation.navigate('Detail', { noteId: item.id })}
               confirmDelete={handleDelete}
             />
           )}
@@ -307,22 +260,20 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
         />
       )}
 
-      {/* FAB — opens quick-add modal */}
       <SchedulerFAB onPress={() => setQuickAddVisible(true)} />
 
       <QuickAddModal
         visible={quickAddVisible}
         selectedDay={selectedDay}
-        categories={categories}
+        categories={quickAddCategories}
         userId={userId}
         onClose={() => setQuickAddVisible(false)}
         onSaved={() => {
           setQuickAddVisible(false);
-          loadNotes();
         }}
-        onMoreDetails={(note) => {
+        onMoreDetails={(noteId) => {
           setQuickAddVisible(false);
-          navigation.navigate('Detail', { noteItem: note, isJustCreated: true });
+          navigation.navigate('Detail', { noteId, isJustCreated: true });
         }}
       />
     </SafeAreaView>

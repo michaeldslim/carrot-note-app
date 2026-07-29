@@ -12,17 +12,13 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
-  deleteNote,
-  updateNote,
-  toggleStatus,
-} from '../service/firebaseService';
-import {
-  cancelDeadlineReminder,
-  upsertDeadlineReminder,
-} from '../service/notificationService';
+  deleteNoteWithReminder,
+  updateNoteWithReminder,
+} from '../service/noteActions';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackList } from '../navigation/RootNavigator';
 import { NoteUpdateButton } from '../components/noteUpdateButton';
@@ -30,18 +26,39 @@ import { NoteActionButton } from '../components/noteActionButton';
 import { getShadow, ui } from '../theme/ui';
 import { useTheme } from '../theme/ThemeContext';
 import DateRangePicker from '../components/dateRangePicker/DateRangePicker';
+import { useNotesContext } from '../context/NotesContext';
 
 type NoteDetailProps = NativeStackScreenProps<RootStackList, 'Detail'>;
 
 const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
-  const { noteItem, isJustCreated = false } = route.params;
+  const { noteId, isJustCreated = false } = route.params;
   const { colors } = useTheme();
+  const {
+    getNoteById,
+    loading,
+    toggleNoteOptimistic,
+  } = useNotesContext();
+  const noteItem = getNoteById(noteId);
 
-  const [editTitle, setEditTitle] = useState<string>(noteItem.title ?? '');
-  const [editNote, setEditNote] = useState<string>(noteItem.note);
-  const [editStartDate, setEditStartDate] = useState<string | undefined>(noteItem.startDate);
-  const [editEndDate, setEditEndDate] = useState<string | undefined>(noteItem.endDate);
+  const [editTitle, setEditTitle] = useState<string>('');
+  const [editNote, setEditNote] = useState<string>('');
+  const [editStartDate, setEditStartDate] = useState<string | undefined>();
+  const [editEndDate, setEditEndDate] = useState<string | undefined>();
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!noteItem) return;
+    setEditTitle(noteItem.title ?? '');
+    setEditNote(noteItem.note);
+    setEditStartDate(noteItem.startDate);
+    setEditEndDate(noteItem.endDate);
+  }, [noteItem]);
+
+  useEffect(() => {
+    if (!loading && !noteItem) {
+      navigation.goBack();
+    }
+  }, [loading, noteItem, navigation]);
 
   const styles = useMemo(() => StyleSheet.create({
     scrollContent: {
@@ -182,31 +199,51 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
       fontSize: 15,
       fontWeight: '700',
     },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingTop: 48,
+    },
   }), [colors]);
 
+  if (loading || !noteItem) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   const handleUpdateNote = async () => {
-    await updateNote(noteItem.id, {
-      title: editTitle.trim() || undefined,
-      note: editNote,
-      startDate: editStartDate,
-      endDate: editEndDate,
-    });
-    await upsertDeadlineReminder({
-      id: noteItem.id,
-      title: editTitle.trim() || undefined,
-      note: editNote,
-      endDate: editEndDate,
-    });
-    navigation.goBack();
+    const success = await updateNoteWithReminder(
+      noteItem.id,
+      {
+        title: editTitle.trim() || undefined,
+        note: editNote,
+        startDate: editStartDate,
+        endDate: editEndDate,
+      },
+      {
+        id: noteItem.id,
+        title: editTitle.trim() || undefined,
+        note: editNote,
+        endDate: editEndDate,
+      },
+    );
+    if (success) {
+      navigation.goBack();
+    }
   };
 
   const handleDeleteNote = async () => {
     if (!noteItem.id) return;
 
-    await deleteNote(noteItem.id);
-    await cancelDeadlineReminder(noteItem.id);
-    setIsModalVisible(false);
-    navigation.goBack();
+    const success = await deleteNoteWithReminder(noteItem.id);
+    if (success) {
+      setIsModalVisible(false);
+      navigation.goBack();
+    }
   };
 
   const confirmDelete = () => {
@@ -218,8 +255,13 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
   };
 
   const handleToggleStatus = async () => {
-    await toggleStatus(noteItem.id, !noteItem.completed);
-    navigation.goBack();
+    const success = await toggleNoteOptimistic(
+      noteItem.id,
+      !noteItem.completed,
+    );
+    if (success) {
+      navigation.goBack();
+    }
   };
 
   const getStatusText = (completed: boolean) => {
