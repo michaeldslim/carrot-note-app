@@ -13,7 +13,8 @@ Use this rule when implementing features, refactors, or UX polish. Prioritize ph
 - **Screens:** Loading → Calendar (home), NoteList, NoteDetail, Settings, Login/Signup
 - **Data model:** Single flat `Note` type (`title`, `note`, `completed`, `category`, `startDate`, `endDate`)
 - **Themes:** light, darkGreen, darkTeal via `ThemeContext`
-- **Pain points:** No Firestore real-time sync; duplicated fetch/category logic in `NoteList` + `CalendarScreen`; inline header styles; limited test coverage; README still describes generic todo scaffold
+- **Architecture:** `NotesProvider` (`app/context/NotesContext.tsx`) + `useNotes` / `useCategories` / `useNoteFilters` hooks; `noteActions` for mutations; real-time `onSnapshot` sync; `Detail` route uses `noteId`
+- **Pain points:** Inline header styles; limited test coverage (`useNotes` hook untested); README still describes generic todo scaffold; search/completion filters exist in `useNoteFilters` but not yet in NoteList UI
 - **Scheduling UX (user-reported):**
   - ~~**No date range on create**~~ — **done** (§2.0.1): `QuickAddModal` supports date range on create
   - **Range on calendar** — **accepted as-is** (§2.0.2 skipped): per-day dots and agenda rows for ranged events are fine; do not implement period marks or agenda deduplication
@@ -21,41 +22,35 @@ Use this rule when implementing features, refactors, or UX polish. Prioritize ph
 
 ---
 
-## Phase 1 — Logic & Architecture (foundation)
+## Phase 1 — Logic & Architecture (foundation) — **complete**
 
 Do this before new note types so extensions don't multiply tech debt.
 
-### 1.1 Real-time Firestore listeners
-- Replace one-shot `fetchNotes` + manual refresh with `onSnapshot` in a shared hook
-- Unsubscribe on blur/unmount to avoid leaks
-- Keep pull-to-refresh as a forced re-sync fallback
+### 1.1 Real-time Firestore listeners — **done**
 
-```typescript
-// Target: app/hooks/useNotes.ts
-export function useNotes(userId: string | undefined) {
-  // onSnapshot → notes[], loading, error, refresh()
-}
-```
+**Implemented:** `subscribeToNotes` + `mapDocToNote` in `firebaseService.ts`; `useNotes` hook subscribes via `onSnapshot` while the user is signed in (unsubscribes on logout). NoteList pull-to-refresh calls `fetchNotes` as a forced re-sync fallback.
 
-### 1.2 Shared data hooks
-Extract duplicated logic from `NoteList.tsx` and `CalendarScreen.tsx`:
-- `useNotes(userId)` — notes + loading + error
-- `useCategories(userId)` — categories + seed defaults (`Home`, `Shopping`)
-- `useNoteFilters(notes)` — category filter, completion filter, search
+### 1.2 Shared data hooks — **done**
 
-### 1.3 Centralized note mutations
-- Wrap `addNote`, `updateNote`, `toggleStatus`, `deleteNote` in a `noteActions` module or context
-- Always pair delete with `cancelDeadlineReminder`
-- Always pair date changes with `upsertDeadlineReminder` / `cancelDeadlineReminder`
-- Surface errors via a single `showError(message)` helper instead of scattered `Alert.alert`
+**Implemented:**
+- `app/hooks/useNotes.ts` — notes, loading, error, refresh, `getNoteById`
+- `app/hooks/useCategories.ts` — categories + seed defaults (`Home`, `Shopping`); optional `includeSelectOption` for picker UIs
+- `app/hooks/useNoteFilters.ts` — category, completion, and search filtering (search/completion UI wired in Phase 2.2)
+- `app/context/NotesContext.tsx` — single shared listener wrapped in `App.tsx`
 
-### 1.4 Optimistic UI
-- Toggle complete / delete: update local state immediately, rollback on Firestore failure
-- Reduces perceived lag on slow networks
+`NoteList` and `CalendarScreen` no longer duplicate fetch/category logic.
 
-### 1.5 Type-safe navigation params
-- Ensure `Detail` receives `noteId` (not full `Note` object) so edits on one screen reflect everywhere
-- Fetch or select from store by id to avoid stale route params
+### 1.3 Centralized note mutations — **done**
+
+**Implemented:** `app/service/noteActions.ts` — `createNote`, `updateNoteWithReminder`, `deleteNoteWithReminder`, `toggleNoteStatus`. Delete always pairs with `cancelDeadlineReminder`; date changes pair with `upsertDeadlineReminder`. Errors surface via `app/utils/showError.ts`.
+
+### 1.4 Optimistic UI — **done**
+
+**Implemented:** `deleteNoteOptimistic` and `toggleNoteOptimistic` in `useNotes` — local state updates immediately, rollback on Firestore failure.
+
+### 1.5 Type-safe navigation params — **done**
+
+**Implemented:** `Detail: { noteId: string; isJustCreated?: boolean }` in `RootStackList`. `NoteDetail` resolves the note from `NotesContext` via `getNoteById`; edits sync across screens in real time.
 
 ---
 
@@ -63,7 +58,7 @@ Extract duplicated logic from `NoteList.tsx` and `CalendarScreen.tsx`:
 
 Match existing design tokens in `app/theme/ui.ts` and `themes.ts`. Do not introduce a second design system.
 
-**Prioritize Phase 1 next** — §2.0 scheduling UX is complete (2.0.1 done, 2.0.2 skipped, 2.0.3 done).
+**Prioritize Phase 2 next** — Phase 1 and §2.0 scheduling UX are complete (1.x done, 2.0.1 done, 2.0.2 skipped, 2.0.3 done).
 
 ### 2.0 Scheduling & event-creation UX — **complete**
 
@@ -105,9 +100,9 @@ Create small reusable components under `app/components/ui/`:
 - `Card` — surface + border + shadow wrapper
 
 ### 2.2 Note list UX
-- **Search bar** above category chips (filter by title + note body)
+- **Search bar** above category chips (filter by title + note body) — hook ready in `useNoteFilters`
 - **Sort options:** newest, oldest, due date, category
-- **Completion filter:** All / Active / Completed
+- **Completion filter:** All / Active / Completed — hook ready in `useNoteFilters`; wire UI here
 - **Inline complete** checkbox on `NoteItem` (avoid navigating to Detail for simple toggles)
 - **Category color dots** on each row (store color on category doc in Firestore)
 - **Haptic feedback** on swipe-delete and complete (expo-haptics)
@@ -214,7 +209,7 @@ export type Note = TaskNote | ChecklistNote | ReminderNote | RecurringNote;
 
 ### 3.6 Firestore migration
 - Add `type` on write for all new notes
-- `fetchNotes` mapper: `type: data.type ?? 'task'`
+- `mapDocToNote` / `subscribeToNotes` mapper: `type: data.type ?? 'task'`
 - Optional one-time admin script to backfill `type` on existing docs
 
 ---
@@ -269,9 +264,10 @@ Light engagement layer — do not block core productivity features.
 | ~~P0~~ | ~~Date range in QuickAdd (§2.0.1)~~ | done |
 | ~~P0~~ | ~~Range calendar display (§2.0.2)~~ | skipped |
 | ~~P0~~ | ~~Add-event affordances (§2.0.3)~~ | done |
-| P0 | `useNotes` + `useCategories` hooks | M |
-| P0 | Real-time `onSnapshot` | M |
-| P1 | Shared UI primitives + search/sort | M |
+| ~~P0~~ | ~~`useNotes` + `useCategories` hooks (§1.2)~~ | done |
+| ~~P0~~ | ~~Real-time `onSnapshot` (§1.1)~~ | done |
+| ~~P0~~ | ~~`noteActions` + optimistic UI + `noteId` nav (§1.3–1.5)~~ | done |
+| P1 | Shared UI primitives + search/sort (§2.1–2.2) | M |
 | P1 | Note type union + task default | S |
 | P1 | Checklist type | L |
 | P2 | Reminder type + time notifications | M |
@@ -288,8 +284,9 @@ S = small, M = medium, L = large
 
 - **Minimize scope:** One phase item per PR when possible
 - **Match existing patterns:** `useTheme`, `ui` tokens, copyright header on new files
+- **Notes data:** Use `useNotesContext()` for reads; `noteActions` for writes (do not call `firebaseService` mutations directly from screens)
 - **No breaking changes:** Old notes without `type` must keep working
 - **Firebase:** User-scoped queries only (`where('userId', '==', userId)`)
-- **Notifications:** Always cancel on delete; upsert on date/time change
+- **Notifications:** Always cancel on delete; upsert on date/time change — handled in `noteActions`
 - **Do not implement §2.0.2** — ranged events on the calendar/agenda stay as-is unless the user reopens this item
 - **Do not** add new dependencies without justification (prefer expo-* packages)
