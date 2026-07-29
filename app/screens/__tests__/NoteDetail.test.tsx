@@ -6,30 +6,35 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import NoteDetail from '../NoteDetail';
-import * as firebaseService from '../../service/firebaseService';
-import * as notificationService from '../../service/notificationService';
+import * as noteActions from '../../service/noteActions';
 
-jest.mock('../../service/firebaseService', () => ({
-  updateNote: jest.fn().mockResolvedValue(undefined),
-  deleteNote: jest.fn().mockResolvedValue(undefined),
-  toggleStatus: jest.fn().mockResolvedValue(undefined),
+const mockNote = {
+  id: '1',
+  title: '',
+  note: 'Test note',
+  completed: false,
+  createdAt: '2025-01-01T00:00:00.000Z',
+};
+
+jest.mock('../../service/noteActions', () => ({
+  updateNoteWithReminder: jest.fn().mockResolvedValue(true),
+  deleteNoteWithReminder: jest.fn().mockResolvedValue(true),
+  toggleNoteStatus: jest.fn().mockResolvedValue(true),
 }));
 
-jest.mock('../../service/notificationService', () => ({
-  upsertDeadlineReminder: jest.fn().mockResolvedValue('notification-id'),
-  cancelDeadlineReminder: jest.fn().mockResolvedValue(undefined),
+jest.mock('../../context/NotesContext', () => ({
+  useNotesContext: () => ({
+    getNoteById: (id: string) => (id === '1' ? mockNote : undefined),
+    loading: false,
+    toggleNoteOptimistic: jest.fn().mockResolvedValue(true),
+  }),
 }));
 
 const createProps = () => {
   return {
     route: {
       params: {
-        noteItem: {
-          id: '1',
-          title: '',
-          note: 'Test note',
-          completed: false,
-        },
+        noteId: '1',
       },
     },
     navigation: {
@@ -41,43 +46,46 @@ const createProps = () => {
 describe('NoteDetail screen', () => {
   it('renders input and action buttons', () => {
     const props = createProps();
-    const { getByPlaceholderText, getByText } = render(
+    const { getByPlaceholderText, getByText, getAllByText } = render(
       <NoteDetail {...props} />,
     );
 
-    expect(getByPlaceholderText('Edit note (optional)')).toBeTruthy();
-    expect(getByText('Update note')).toBeTruthy();
+    expect(getByPlaceholderText('Detail note (optional)')).toBeTruthy();
+    expect(getAllByText('Update note').length).toBeGreaterThan(0);
     expect(getByText('Delete note')).toBeTruthy();
     expect(getByText('Mark as Complete')).toBeTruthy();
   });
 
-  it('calls updateNote and navigates back when Update note is pressed', async () => {
+  it('calls updateNoteWithReminder and navigates back when Update note is pressed', async () => {
     const props = createProps();
-    const { getByText, getByPlaceholderText } = render(
+    const { getByText, getByPlaceholderText, getAllByText } = render(
       <NoteDetail {...props} />,
     );
 
-    const input = getByPlaceholderText('Edit note (optional)');
+    const input = getByPlaceholderText('Detail note (optional)');
     const updatedText = 'Updated note';
 
     fireEvent.changeText(input, updatedText);
 
-    const updateButton = getByText('Update note');
+    const updateButton = getAllByText('Update note').at(-1)!;
     fireEvent.press(updateButton);
 
     await waitFor(() => {
-      expect(firebaseService.updateNote).toHaveBeenCalledWith('1', {
-        title: undefined,
-        note: updatedText,
-        startDate: undefined,
-        endDate: undefined,
-      });
-      expect(notificationService.upsertDeadlineReminder).toHaveBeenCalledWith({
-        id: '1',
-        title: undefined,
-        note: updatedText,
-        endDate: undefined,
-      });
+      expect(noteActions.updateNoteWithReminder).toHaveBeenCalledWith(
+        '1',
+        {
+          title: undefined,
+          note: updatedText,
+          startDate: undefined,
+          endDate: undefined,
+        },
+        {
+          id: '1',
+          title: undefined,
+          note: updatedText,
+          endDate: undefined,
+        },
+      );
       expect(props.navigation.goBack).toHaveBeenCalled();
     });
   });
