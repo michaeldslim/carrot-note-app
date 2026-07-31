@@ -27,6 +27,11 @@ import {
 import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { getAuthErrorMessage } from './firebaseErrors';
 import { Alert } from 'react-native';
+import { CategoryRecord } from '../types/category';
+import {
+  getCategoryColorForIndex,
+  getCategoryColorForName,
+} from '../utils/categoryColors';
 
 const notesCollection = collection(FIRESTORE_DB, 'notes');
 
@@ -174,8 +179,14 @@ export const addCategories = async (
       return;
     }
 
-    for (const category of newCategories) {
-      await addDoc(categoriesCollection, { userId, category });
+    const existingCount = existingCategories.size;
+    for (let i = 0; i < newCategories.length; i++) {
+      const category = newCategories[i];
+      await addDoc(categoriesCollection, {
+        userId,
+        category,
+        color: getCategoryColorForIndex(existingCount + i),
+      });
     }
   } catch (error) {
     if (error instanceof Error) {
@@ -186,20 +197,28 @@ export const addCategories = async (
   }
 };
 
-export const fetchCategories = async (userId: string): Promise<string[]> => {
+export const fetchCategoryRecords = async (
+  userId: string,
+): Promise<CategoryRecord[]> => {
   try {
     const categoriesCollection = collection(FIRESTORE_DB, 'categories');
     const q = query(categoriesCollection, where('userId', '==', userId));
     const querySnapshot = await getDocs(q);
-    const categories: string[] = [];
-    querySnapshot.forEach((doc) => {
-      categories.push(doc.data().category);
+    const byName = new Map<string, CategoryRecord>();
+
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      const name = String(data.category);
+      const color =
+        typeof data.color === 'string'
+          ? data.color
+          : getCategoryColorForName(name);
+      byName.set(name, { name, color });
     });
 
-    // Ensure categories are unique before returning
-    const uniqueCategories = Array.from(new Set(categories));
-
-    return uniqueCategories.sort((a, b) => a.localeCompare(b));
+    return Array.from(byName.values()).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
   } catch (error) {
     if (error instanceof Error) {
       Alert.alert('Error', `Fetching categories: ${error.message}`);
@@ -208,6 +227,11 @@ export const fetchCategories = async (userId: string): Promise<string[]> => {
     }
     return [];
   }
+};
+
+export const fetchCategories = async (userId: string): Promise<string[]> => {
+  const records = await fetchCategoryRecords(userId);
+  return records.map((record) => record.name);
 };
 
 export const updateCategory = async (

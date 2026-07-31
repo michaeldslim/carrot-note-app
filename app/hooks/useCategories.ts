@@ -6,8 +6,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   addCategories,
-  fetchCategories,
+  fetchCategoryRecords,
 } from '../service/firebaseService';
+import { CategoryRecord } from '../types/category';
 import { showError } from '../utils/showError';
 
 const DEFAULT_CATEGORIES = ['Home', 'Shopping'];
@@ -21,6 +22,9 @@ export interface UseCategoriesOptions {
 
 export interface UseCategoriesResult {
   categories: string[];
+  categoryRecords: CategoryRecord[];
+  /** Category name → color hex. */
+  categoryColors: Record<string, string>;
   /** Categories without the "Select an option" placeholder. */
   quickAddCategories: string[];
   loading: boolean;
@@ -31,13 +35,13 @@ export function useCategories(
   options: UseCategoriesOptions = {},
 ): UseCategoriesResult {
   const { includeSelectOption = false, isFocused = true } = options;
-  const [rawCategories, setRawCategories] = useState<string[]>([]);
+  const [categoryRecords, setCategoryRecords] = useState<CategoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!userId || !isFocused) {
       if (!userId) {
-        setRawCategories([]);
+        setCategoryRecords([]);
         setLoading(false);
       }
       return;
@@ -48,16 +52,17 @@ export function useCategories(
     const loadCategories = async () => {
       setLoading(true);
       try {
-        const fetched = await fetchCategories(userId);
+        let fetched = await fetchCategoryRecords(userId);
         if (cancelled) return;
 
-        if (!fetched || fetched.length === 0) {
+        if (fetched.length === 0) {
           await addCategories(userId, DEFAULT_CATEGORIES);
           if (!cancelled) {
-            setRawCategories(DEFAULT_CATEGORIES);
+            fetched = await fetchCategoryRecords(userId);
+            setCategoryRecords(fetched);
           }
         } else {
-          setRawCategories(fetched);
+          setCategoryRecords(fetched);
         }
       } catch (error) {
         if (!cancelled) {
@@ -81,25 +86,36 @@ export function useCategories(
   }, [userId, isFocused]);
 
   const categories = useMemo(() => {
+    const names = categoryRecords.map((record) => record.name);
     if (includeSelectOption) {
-      return ['Select an option', ...rawCategories];
+      return ['Select an option', ...names];
     }
-    return rawCategories;
-  }, [includeSelectOption, rawCategories]);
+    return names;
+  }, [includeSelectOption, categoryRecords]);
+
+  const categoryColors = useMemo(
+    () =>
+      Object.fromEntries(
+        categoryRecords.map((record) => [record.name, record.color]),
+      ),
+    [categoryRecords],
+  );
 
   const quickAddCategories = useMemo(() => {
     if (includeSelectOption) {
-      return rawCategories;
+      return categoryRecords.map((record) => record.name);
     }
     return categories;
-  }, [includeSelectOption, rawCategories, categories]);
+  }, [includeSelectOption, categoryRecords, categories]);
 
   return useMemo(
     () => ({
       categories,
+      categoryRecords,
+      categoryColors,
       quickAddCategories,
       loading,
     }),
-    [categories, quickAddCategories, loading],
+    [categories, categoryRecords, categoryColors, quickAddCategories, loading],
   );
 }
