@@ -4,12 +4,20 @@
  the terms of the GNU General Public License v3.
 */
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  TouchableOpacity,
+  Pressable,
+} from 'react-native';
 import { Note } from './types';
-import { IconButton } from 'react-native-paper';
+import { IconButton, Checkbox } from 'react-native-paper';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { getShadow, ui } from '../theme/ui';
 import { useTheme } from '../theme/ThemeContext';
+import { hapticLight, hapticMedium } from '../utils/haptics';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -32,12 +40,16 @@ interface NoteItemProps {
   note: Note;
   onPress: () => void;
   confirmDelete: (noteId: string) => void;
+  onToggleComplete?: (noteId: string, completed: boolean) => void;
+  categoryColor?: string;
 }
 
 const NoteItem: React.FC<NoteItemProps> = ({
   note,
   onPress,
   confirmDelete,
+  onToggleComplete,
+  categoryColor,
 }) => {
   const { colors } = useTheme();
   const translateX = useSharedValue(0);
@@ -67,10 +79,30 @@ const NoteItem: React.FC<NoteItemProps> = ({
       borderRadius: ui.radius.md,
       borderWidth: 1,
       borderColor: colors.border,
-      paddingHorizontal: 14,
+      paddingHorizontal: 10,
       paddingVertical: 14,
       minHeight: 65,
       ...getShadow(colors.shadowColor),
+    },
+    checkbox: {
+      marginRight: 2,
+    },
+    content: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      minWidth: 0,
+    },
+    categoryDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      marginRight: 8,
+      flexShrink: 0,
+    },
+    textBlock: {
+      flex: 1,
+      minWidth: 0,
     },
     noteText: {
       flex: 1,
@@ -126,29 +158,25 @@ const NoteItem: React.FC<NoteItemProps> = ({
   }), [colors]);
 
   const gesture = Gesture.Pan()
-    .activeOffsetX([-10, 10]) // Only activate gesture when horizontal movement exceeds 10 pixels
+    .activeOffsetX([-10, 10])
     .onChange((event) => {
-      // Only allow swipe for completed notes
       if (!note.completed) {
         translateX.value = 0;
         return;
       }
 
       if (event.translationX <= 0) {
-        // Limit the swipe to SWIPE_THRESHOLD
         translateX.value = Math.max(event.translationX, SWIPE_THRESHOLD);
       } else if (!isSwipeOpen) {
         translateX.value = 0;
       }
     })
     .onEnd(() => {
-      // If not completed, ensure it stays in place
       if (!note.completed) {
         translateX.value = 0;
         return;
       }
 
-      // If swiped more than halfway to threshold, open fully
       if (translateX.value < SWIPE_THRESHOLD / 2) {
         translateX.value = withSpring(SWIPE_THRESHOLD);
         runOnJS(setIsSwipeOpen)(true);
@@ -159,10 +187,17 @@ const NoteItem: React.FC<NoteItemProps> = ({
     });
 
   const handleDelete = () => {
+    hapticMedium().then();
     translateX.value = withSpring(-SCREEN_WIDTH);
     itemHeight.value = withSpring(0);
     setIsSwipeOpen(false);
     confirmDelete(note.id);
+  };
+
+  const handleToggleComplete = () => {
+    if (!onToggleComplete) return;
+    hapticLight().then();
+    onToggleComplete(note.id, !note.completed);
   };
 
   const rStyle = useAnimatedStyle(() => ({
@@ -174,11 +209,9 @@ const NoteItem: React.FC<NoteItemProps> = ({
   }));
 
   const rIconContainerStyle = useAnimatedStyle(() => {
-    // Only show delete container when fully swiped
     const isFullyOpen = translateX.value <= SWIPE_THRESHOLD;
     return {
       opacity: isFullyOpen ? 1 : 0,
-      // Hide the container completely when not fully swiped
       transform: [{ translateX: isFullyOpen ? 0 : 100 }],
       pointerEvents: isFullyOpen ? 'auto' : 'none',
       backgroundColor: colors.background,
@@ -218,33 +251,59 @@ const NoteItem: React.FC<NoteItemProps> = ({
       <View style={styles.container}>
         <GestureDetector gesture={gesture}>
           <Animated.View style={[styles.swipeableContent, rStyle]}>
-            <TouchableOpacity 
+            <View
               style={[
                 styles.innerContainer,
                 expired && note.endDate ? styles.expiredNote : expired ? styles.oldNote : null,
               ]}
-              onPress={onPress}
-              activeOpacity={0.7}
             >
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[
-                    styles.noteText,
-                    note.completed ? styles.completed : styles.notCompleted,
-                  ]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {displayTitle}
-                </Text>
-                {note.startDate && (
-                  <Text style={expired && note.endDate ? styles.expiredLabel : styles.dateLabel}>
-                    {expired && note.endDate ? '⚠ Expired · ' : ''}
-                    {note.startDate.slice(0, 10)}{note.endDate && note.endDate !== note.startDate ? ` → ${note.endDate.slice(0, 10)}` : ''}
-                  </Text>
-                )}
+              <View
+                style={styles.checkbox}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: note.completed }}
+                accessibilityLabel={
+                  note.completed ? 'Mark note incomplete' : 'Mark note complete'
+                }
+              >
+                <Checkbox
+                  status={note.completed ? 'checked' : 'unchecked'}
+                  onPress={handleToggleComplete}
+                  color={colors.primary}
+                  uncheckedColor={colors.textMuted}
+                />
               </View>
-            </TouchableOpacity>
+              <Pressable
+                style={styles.content}
+                onPress={onPress}
+                accessibilityRole="button"
+                accessibilityLabel={`Open note: ${displayTitle}`}
+              >
+                {categoryColor ? (
+                  <View
+                    style={[styles.categoryDot, { backgroundColor: categoryColor }]}
+                    accessibilityLabel={`Category: ${note.category}`}
+                  />
+                ) : null}
+                <View style={styles.textBlock}>
+                  <Text
+                    style={[
+                      styles.noteText,
+                      note.completed ? styles.completed : styles.notCompleted,
+                    ]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {displayTitle}
+                  </Text>
+                  {note.startDate && (
+                    <Text style={expired && note.endDate ? styles.expiredLabel : styles.dateLabel}>
+                      {expired && note.endDate ? '⚠ Expired · ' : ''}
+                      {note.startDate.slice(0, 10)}{note.endDate && note.endDate !== note.startDate ? ` → ${note.endDate.slice(0, 10)}` : ''}
+                    </Text>
+                  )}
+                </View>
+              </Pressable>
+            </View>
           </Animated.View>
         </GestureDetector>
         <Animated.View style={[styles.deleteContainer, rIconContainerStyle]}>
@@ -252,6 +311,8 @@ const NoteItem: React.FC<NoteItemProps> = ({
             onPress={handleDelete}
             style={[styles.deleteButton]}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Delete note"
           >
             <IconButton
               icon="trash-can"
