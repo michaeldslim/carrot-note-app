@@ -7,16 +7,11 @@ import {
   View,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   Text,
-  TextStyle,
-  ScrollView,
   RefreshControl,
   SafeAreaView,
-  ActivityIndicator,
 } from 'react-native';
 import React, { useEffect, useCallback, useMemo, useRef } from 'react';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { requestNotificationPermission } from '../service/notificationService';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackList } from '../navigation/RootNavigator';
@@ -32,6 +27,12 @@ import QuickAddModal from '../components/quickAdd/QuickAddModal';
 import { useNotesContext } from '../context/NotesContext';
 import { useCategories } from '../hooks/useCategories';
 import { useNoteFilters } from '../hooks/useNoteFilters';
+import {
+  CategoryChipRow,
+  EmptyState,
+  LoadingState,
+  ScreenHeaderActions,
+} from '../components/ui';
 
 type NoteListProps = NativeStackScreenProps<RootStackList, 'List'>;
 
@@ -114,132 +115,56 @@ const NoteList = ({ navigation }: NoteListProps) => {
       listHeader: {
         height: 1,
       },
-      buttonText: {
-        color: colors.textSecondary,
-        fontSize: 14,
-        fontWeight: '600',
-      } as TextStyle,
-      filterContainer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        marginTop: 4,
-      },
-      filterButton: {
-        borderRadius: ui.radius.pill,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
-        paddingVertical: 7,
-        paddingHorizontal: 10,
-        marginRight: 6,
-      },
-      filterButtonSelected: {
-        backgroundColor: colors.surfaceSoft,
-        borderColor: colors.primary,
-      },
-      filterButtonTextSelected: {
-        color: colors.primaryDark,
-      },
-      categoryContainer: {
-        flexDirection: 'row',
-      },
       helperText: {
         ...ui.typography.body,
         color: colors.textMuted,
         marginTop: 2,
         marginBottom: ui.spacing.xs,
       },
-      emptyState: {
-        backgroundColor: colors.surface,
-        borderRadius: ui.radius.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
-        padding: ui.spacing.xl,
-        alignItems: 'center',
-        marginTop: 10,
-      },
-      emptyStateTitle: {
-        color: colors.textPrimary,
-        fontSize: 18,
-        fontWeight: '700',
-        marginBottom: 4,
-      },
-      emptyStateText: {
-        color: colors.textSecondary,
-        fontSize: 14,
-        textAlign: 'center',
-        marginBottom: 14,
-      },
-      emptyStateButton: {
-        paddingHorizontal: 18,
-        paddingVertical: 10,
-        borderRadius: ui.radius.pill,
-        backgroundColor: colors.primary,
-      },
-      emptyStateButtonText: {
-        color: colors.surface,
-        fontSize: 14,
-        fontWeight: '700',
-      },
     });
   }, [colors]);
 
   useEffect(() => {
     navigation.setOptions({
-      headerRight: () => (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <TouchableOpacity
-            onPress={() => setQuickAddVisible(true)}
-            style={{
-              paddingHorizontal: 10,
-              paddingVertical: 7,
-              backgroundColor: colors.surfaceSoft,
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: 99,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-            accessibilityLabel="Add event"
-          >
-            <MaterialCommunityIcons name="plus" size={18} color={colors.primaryDark} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setCalendarVisible(true)}
-            style={{
-              paddingHorizontal: 10,
-              paddingVertical: 7,
-              backgroundColor: colors.surfaceSoft,
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: 99,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <MaterialCommunityIcons name="calendar-month" size={16} color={colors.primaryDark} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Settings')}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 7,
-              backgroundColor: colors.surfaceSoft,
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: 99,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <Text style={{ color: colors.primaryDark, fontSize: 13, fontWeight: '700' }}>⚙ Settings</Text>
-          </TouchableOpacity>
-        </View>
-      ),
+      headerRight: () => <ScreenHeaderActions actions={headerActions} />,
     });
-  }, [navigation, colors]);
+  }, [navigation, headerActions]);
 
   const openQuickAdd = useCallback(() => setQuickAddVisible(true), []);
+
+  const categoryChips = useMemo(
+    () =>
+      ['All', ...categories.slice(1)].map((category) => ({
+        key: category,
+        label: category,
+        count: getCountByCategory(category),
+      })),
+    [categories, getCountByCategory],
+  );
+
+  const headerActions = useMemo(
+    () => [
+      {
+        key: 'add',
+        onPress: openQuickAdd,
+        accessibilityLabel: 'Add event',
+        icon: 'plus' as const,
+      },
+      {
+        key: 'calendar',
+        onPress: () => setCalendarVisible(true),
+        accessibilityLabel: 'Calendar',
+        icon: 'calendar-month' as const,
+      },
+      {
+        key: 'settings',
+        onPress: () => navigation.navigate('Settings'),
+        accessibilityLabel: 'Settings',
+        label: '⚙ Settings',
+      },
+    ],
+    [navigation, openQuickAdd],
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -248,35 +173,11 @@ const NoteList = ({ navigation }: NoteListProps) => {
             <Text style={styles.helperText}>
               Tip: swipe left on completed notes to delete quickly.
             </Text>
-            <View style={styles.filterContainer}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.categoryContainer}
-              >
-                {['All', ...categories.slice(1)].map((category, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={[
-                      styles.filterButton,
-                      selectedCategory === category &&
-                        styles.filterButtonSelected,
-                    ]}
-                    onPress={() => setSelectedCategory(category)}
-                  >
-                    <Text
-                      style={[
-                        styles.buttonText,
-                        selectedCategory === category &&
-                          styles.filterButtonTextSelected,
-                      ]}
-                    >
-                      {category} ({getCountByCategory(category)})
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
+            <CategoryChipRow
+              chips={categoryChips}
+              selectedKey={selectedCategory}
+              onSelect={setSelectedCategory}
+            />
           </View>
           <View style={styles.listContainer}>
             <FlatList
@@ -298,23 +199,17 @@ const NoteList = ({ navigation }: NoteListProps) => {
               showsVerticalScrollIndicator={true}
               ListEmptyComponent={
                 isLoading ? (
-                  <View style={styles.emptyState}>
-                    <ActivityIndicator size="large" color={colors.primary} />
-                  </View>
+                  <LoadingState fill={false} />
                 ) : (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyStateTitle}>No notes yet</Text>
-                    <Text style={styles.emptyStateText}>
-                      Tap + to add your first event.
-                    </Text>
-                    <TouchableOpacity
-                      style={styles.emptyStateButton}
-                      onPress={openQuickAdd}
-                      accessibilityLabel="Add event"
-                    >
-                      <Text style={styles.emptyStateButtonText}>Add event</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <EmptyState
+                    title="No notes yet"
+                    subtitle="Tap + to add your first event."
+                    action={{
+                      label: 'Add event',
+                      onPress: openQuickAdd,
+                      accessibilityLabel: 'Add event',
+                    }}
+                  />
                 )
               }
               ListFooterComponent={<View style={styles.listFooter} />}

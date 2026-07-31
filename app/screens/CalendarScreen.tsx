@@ -1,6 +1,6 @@
 /*
- Copyright (C) 2025 Michael Lim - Carrot Note App
- This software is free to use, modify, and share under
+ Copyright (C) 2025 Michael Lim - Carrot Note App 
+ This software is free to use, modify, and share under 
  the terms of the GNU General Public License v3.
 */
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
@@ -9,23 +9,24 @@ import {
   Text,
   FlatList,
   StyleSheet,
-  TouchableOpacity,
   SafeAreaView,
-  ActivityIndicator,
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useIsFocused } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { useTheme } from '../theme/ThemeContext';
-import { ui } from '../theme/ui';
 import { RootStackList } from '../navigation/RootNavigator';
 import NoteItem from './NoteItem';
 import SchedulerFAB from '../components/fab/SchedulerFAB';
 import QuickAddModal from '../components/quickAdd/QuickAddModal';
 import { useNotesContext } from '../context/NotesContext';
 import { useCategories } from '../hooks/useCategories';
+import {
+  EmptyState,
+  LoadingState,
+  ScreenHeaderActions,
+} from '../components/ui';
 
 type CalendarScreenProps = NativeStackScreenProps<RootStackList, 'Calendar'>;
 
@@ -42,34 +43,29 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
   const [selectedDay, setSelectedDay] = useState<string>(todayStr);
   const [quickAddVisible, setQuickAddVisible] = useState(false);
 
+  const headerActions = useMemo(
+    () => [
+      {
+        key: 'list',
+        onPress: () => navigation.navigate('List'),
+        accessibilityLabel: 'List view',
+        icon: 'format-list-bulleted' as const,
+      },
+      {
+        key: 'settings',
+        onPress: () => navigation.navigate('Settings'),
+        accessibilityLabel: 'Settings',
+        label: '⚙ Settings',
+      },
+    ],
+    [navigation],
+  );
+
   useEffect(() => {
     navigation.setOptions({
-      headerRight: () => (
-        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('List')}
-            style={headerBtnStyle(colors)}
-            accessibilityLabel="List view"
-          >
-            <MaterialCommunityIcons
-              name="format-list-bulleted"
-              size={16}
-              color={colors.primaryDark}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Settings')}
-            style={headerBtnStyle(colors)}
-            accessibilityLabel="Settings"
-          >
-            <Text style={{ color: colors.primaryDark, fontSize: 13, fontWeight: '700' }}>
-              ⚙ Settings
-            </Text>
-          </TouchableOpacity>
-        </View>
-      ),
+      headerRight: () => <ScreenHeaderActions actions={headerActions} />,
     });
-  }, [navigation, colors]);
+  }, [navigation, headerActions]);
 
   const markedDates = useMemo(() => {
     const map: Record<string, any> = {};
@@ -160,25 +156,6 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
           paddingHorizontal: 14,
           paddingBottom: 110,
         },
-        emptyContainer: {
-          alignItems: 'center',
-          paddingTop: 40,
-          paddingHorizontal: 24,
-        },
-        emptyIcon: {
-          marginBottom: 10,
-        },
-        emptyText: {
-          fontSize: 14,
-          color: colors.textMuted,
-          textAlign: 'center',
-          lineHeight: 20,
-        },
-        loadingContainer: {
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-        },
         divider: {
           height: 1,
           backgroundColor: colors.border,
@@ -216,9 +193,7 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
       </View>
 
       {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+        <LoadingState />
       ) : (
         <FlatList
           data={agendaNotes}
@@ -245,17 +220,13 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
             />
           )}
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <MaterialCommunityIcons
-                name="calendar-blank-outline"
-                size={48}
-                color={colors.textMuted}
-                style={styles.emptyIcon}
-              />
-              <Text style={styles.emptyText}>
-                Nothing scheduled here yet.{'\n'}Tap + to add your first event.
-              </Text>
-            </View>
+            <EmptyState
+              variant="plain"
+              icon="calendar-blank-outline"
+              subtitle={
+                'Nothing scheduled here yet.\nTap + to add your first event.'
+              }
+            />
           }
         />
       )}
@@ -279,16 +250,5 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
     </SafeAreaView>
   );
 };
-
-const headerBtnStyle = (colors: any) => ({
-  paddingHorizontal: 10,
-  paddingVertical: 7,
-  backgroundColor: colors.surfaceSoft,
-  borderWidth: 1,
-  borderColor: colors.border,
-  borderRadius: 99,
-  justifyContent: 'center' as const,
-  alignItems: 'center' as const,
-});
 
 export default CalendarScreen;

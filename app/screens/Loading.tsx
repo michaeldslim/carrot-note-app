@@ -4,40 +4,26 @@
  the terms of the GNU General Public License v3.
 */
 import React, { useEffect, useMemo } from 'react';
-import { View, ActivityIndicator, StyleSheet, Text, Image } from 'react-native';
+import { StyleSheet, Image } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackList } from '../navigation/RootNavigator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
-import { useTheme } from '../theme/ThemeContext';
+import { LoadingState } from '../components/ui';
 
 type LoadingProps = NativeStackScreenProps<RootStackList, 'Loading'>;
 
 const Loading: React.FC<LoadingProps> = ({ navigation }) => {
   const auth = FIREBASE_AUTH;
 
-  const { colors } = useTheme();
-
   const styles = useMemo(() => StyleSheet.create({
-    container: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: colors.background,
-    },
     logo: {
       width: 88,
       height: 88,
       marginBottom: 20,
     },
-    text: {
-      marginTop: 14,
-      color: colors.textSecondary,
-      fontSize: 15,
-      fontWeight: '600',
-    },
-  }), [colors]);
+  }), []);
 
   useEffect(() => {
     const checkAuthState = async () => {
@@ -72,11 +58,9 @@ const Loading: React.FC<LoadingProps> = ({ navigation }) => {
   }, [auth, navigation]);
 
   return (
-    <View style={styles.container}>
+    <LoadingState message="Preparing your notes...">
       <Image source={require('../assets/logo.png')} style={styles.logo} />
-      <ActivityIndicator size="large" color={colors.primary} />
-      <Text style={styles.text}>Preparing your notes...</Text>
-    </View>
+    </LoadingState>
   );
 };
 
