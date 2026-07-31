@@ -91,13 +91,16 @@ Match existing design tokens in `app/theme/ui.ts` and `themes.ts`. Do not introd
 
 ~~Optional polish (not planned):~~ Calendar header +, extended FAB label, inline Calendar empty CTA.
 
-### 2.1 Shared UI primitives
-Create small reusable components under `app/components/ui/`:
-- `ScreenHeaderActions` — calendar + settings pills (currently duplicated inline)
-- `CategoryChipRow` — horizontal filter chips with count badges
-- `EmptyState` — icon, title, subtitle, optional CTA
-- `LoadingState` — consistent spinner + message
-- `Card` — surface + border + shadow wrapper
+### 2.1 Shared UI primitives — **done**
+
+**Implemented** under `app/components/ui/`:
+- `ScreenHeaderActions` — pill buttons for nav header (Calendar, NoteList)
+- `CategoryChipRow` — horizontal filter chips with count badges (NoteList)
+- `EmptyState` — icon, title, subtitle, optional CTA (`card` | `plain` variants)
+- `LoadingState` — consistent spinner + message (Loading, Calendar, NoteList)
+- `Card` — surface + border + optional shadow wrapper
+
+**Migrated:** `NoteList`, `CalendarScreen`, `Loading`
 
 ### 2.2 Note list UX
 - **Search bar** above category chips (filter by title + note body) — hook ready in `useNoteFilters`
@@ -267,7 +270,8 @@ Light engagement layer — do not block core productivity features.
 | ~~P0~~ | ~~`useNotes` + `useCategories` hooks (§1.2)~~ | done |
 | ~~P0~~ | ~~Real-time `onSnapshot` (§1.1)~~ | done |
 | ~~P0~~ | ~~`noteActions` + optimistic UI + `noteId` nav (§1.3–1.5)~~ | done |
-| P1 | Shared UI primitives + search/sort (§2.1–2.2) | M |
+| P1 | ~~Shared UI primitives (§2.1)~~ | done |
+| P1 | Note list search/sort/completion (§2.2) | M |
 | P1 | Note type union + task default | S |
 | P1 | Checklist type | L |
 | P2 | Reminder type + time notifications | M |
