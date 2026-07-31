@@ -7,6 +7,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Note } from '../screens/types';
 
 export type CompletionFilter = 'all' | 'active' | 'completed';
+export type SortOption = 'newest' | 'oldest' | 'dueDate' | 'category';
 
 export interface UseNoteFiltersResult {
   filteredNotes: Note[];
@@ -16,7 +17,50 @@ export interface UseNoteFiltersResult {
   setCompletionFilter: (filter: CompletionFilter) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  sortOption: SortOption;
+  setSortOption: (option: SortOption) => void;
   getCountByCategory: (category: string) => number;
+  hasActiveFilters: boolean;
+}
+
+function compareDueDate(a: Note, b: Note): number {
+  const aDate = a.startDate ?? a.endDate;
+  const bDate = b.startDate ?? b.endDate;
+
+  if (!aDate && !bDate) return 0;
+  if (!aDate) return 1;
+  if (!bDate) return -1;
+  return aDate.localeCompare(bDate);
+}
+
+function sortNotes(notes: Note[], sortOption: SortOption): Note[] {
+  const sorted = [...notes];
+
+  switch (sortOption) {
+    case 'newest':
+      return sorted.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+    case 'oldest':
+      return sorted.sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+    case 'dueDate':
+      return sorted.sort(compareDueDate);
+    case 'category':
+      return sorted.sort((a, b) => {
+        const aCategory = a.category ?? '';
+        const bCategory = b.category ?? '';
+        if (!aCategory && !bCategory) return 0;
+        if (!aCategory) return 1;
+        if (!bCategory) return -1;
+        return aCategory.localeCompare(bCategory);
+      });
+    default:
+      return sorted;
+  }
 }
 
 export function useNoteFilters(notes: Note[]): UseNoteFiltersResult {
@@ -24,6 +68,7 @@ export function useNoteFilters(notes: Note[]): UseNoteFiltersResult {
   const [completionFilter, setCompletionFilter] =
     useState<CompletionFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
 
   const filteredNotes = useMemo(() => {
     let result = notes;
@@ -47,8 +92,17 @@ export function useNoteFilters(notes: Note[]): UseNoteFiltersResult {
       });
     }
 
-    return result;
-  }, [notes, selectedCategory, completionFilter, searchQuery]);
+    return sortNotes(result, sortOption);
+  }, [notes, selectedCategory, completionFilter, searchQuery, sortOption]);
+
+  const hasActiveFilters = useMemo(
+    () =>
+      selectedCategory !== 'All' ||
+      completionFilter !== 'all' ||
+      searchQuery.trim().length > 0 ||
+      sortOption !== 'newest',
+    [selectedCategory, completionFilter, searchQuery, sortOption],
+  );
 
   const getCountByCategory = useCallback(
     (category: string) => {
@@ -69,14 +123,19 @@ export function useNoteFilters(notes: Note[]): UseNoteFiltersResult {
       setCompletionFilter,
       searchQuery,
       setSearchQuery,
+      sortOption,
+      setSortOption,
       getCountByCategory,
+      hasActiveFilters,
     }),
     [
       filteredNotes,
       selectedCategory,
       completionFilter,
       searchQuery,
+      sortOption,
       getCountByCategory,
+      hasActiveFilters,
     ],
   );
 }
