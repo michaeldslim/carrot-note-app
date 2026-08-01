@@ -12,6 +12,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackList } from '../navigation/RootNavigator';
 import { ui } from '../theme/ui';
 import { useTheme } from '../theme/ThemeContext';
+import { MIN_TOUCH_TARGET } from '../utils/accessibility';
 
 type NoteLogoutProps = NativeStackNavigationProp<RootStackList, 'List'>;
 
@@ -25,6 +26,7 @@ const Logout: React.FC = () => {
       alignSelf: 'stretch',
       marginHorizontal: 14,
       marginBottom: 18,
+      minHeight: MIN_TOUCH_TARGET,
       paddingVertical: 14,
       backgroundColor: colors.danger,
       borderRadius: ui.radius.md,
@@ -38,7 +40,7 @@ const Logout: React.FC = () => {
     },
   }), [colors]);
 
-  const handleLogout = async () => {
+  const performLogout = async () => {
     try {
       await auth.signOut();
       await AsyncStorage.removeItem('user');
@@ -52,8 +54,20 @@ const Logout: React.FC = () => {
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert('Log out?', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Log out', style: 'destructive', onPress: performLogout },
+    ]);
+  };
+
   return (
-    <TouchableOpacity onPress={handleLogout} style={styles.button}>
+    <TouchableOpacity
+      onPress={handleLogout}
+      style={styles.button}
+      accessibilityRole="button"
+      accessibilityLabel="Log out"
+    >
       <Text style={styles.buttonText}>Logout</Text>
     </TouchableOpacity>
   );

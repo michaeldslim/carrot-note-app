@@ -14,21 +14,33 @@ import {
   Text,
   TouchableOpacity,
 } from 'react-native';
+import * as Application from 'expo-application';
 import { CategoryManager } from '../components/categoryManager';
 import { PasswordManager } from '../components/passwordManager';
 import Logout from './Logout';
 import { ui } from '../theme/ui';
 import { useTheme } from '../theme/ThemeContext';
-import { ThemeName, THEME_LABELS } from '../theme/themes';
+import { ThemePreference, THEME_LABELS } from '../theme/themes';
 import { FIREBASE_AUTH } from '../../firebaseConfig';
+import { MIN_TOUCH_TARGET } from '../utils/accessibility';
 
 const Settings = () => {
-  const { colors, themeName, setTheme } = useTheme();
-  const themeNames: ThemeName[] = ['light', 'darkGreen', 'darkTeal'];
+  const { colors, themePreference, setTheme } = useTheme();
+  const themeNames: ThemePreference[] = [
+    'system',
+    'light',
+    'darkGreen',
+    'darkTeal',
+  ];
   const isGoogleUser =
     FIREBASE_AUTH.currentUser?.providerData?.some(
       (provider) => provider.providerId === 'google.com',
     ) ?? false;
+
+  const versionLabel = useMemo(() => {
+    const version = Application.nativeApplicationVersion ?? '—';
+    return `v${version}`;
+  }, []);
 
   const styles = useMemo(() => StyleSheet.create({
     keyboardAvoidingView: {
@@ -65,17 +77,20 @@ const Settings = () => {
       marginBottom: 14,
       color: colors.textPrimary,
     },
-    themeRow: {
+    themeGrid: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: 10,
     },
     themeButton: {
-      flex: 1,
-      paddingVertical: 10,
+      width: '47%',
+      minHeight: MIN_TOUCH_TARGET,
+      paddingVertical: 12,
       borderRadius: ui.radius.md,
       borderWidth: 1,
       borderColor: colors.border,
       alignItems: 'center',
+      justifyContent: 'center',
       backgroundColor: colors.surfaceSoft,
     },
     themeButtonActive: {
@@ -89,6 +104,15 @@ const Settings = () => {
     },
     themeButtonTextActive: {
       color: colors.primaryDark,
+    },
+    footer: {
+      alignItems: 'center',
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+    },
+    versionText: {
+      fontSize: 12,
+      color: colors.textMuted,
     },
   }), [colors]);
 
@@ -106,23 +130,40 @@ const Settings = () => {
           >
             <View style={styles.themeCard}>
               <Text style={styles.themeTitle}>Theme</Text>
-              <View style={styles.themeRow}>
-                {themeNames.map((name) => (
-                  <TouchableOpacity
-                    key={name}
-                    style={[styles.themeButton, themeName === name && styles.themeButtonActive]}
-                    onPress={() => setTheme(name)}
-                  >
-                    <Text style={[styles.themeButtonText, themeName === name && styles.themeButtonTextActive]}>
-                      {THEME_LABELS[name]}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              <View style={styles.themeGrid}>
+                {themeNames.map((name) => {
+                  const isActive = themePreference === name;
+                  return (
+                    <TouchableOpacity
+                      key={name}
+                      style={[
+                        styles.themeButton,
+                        isActive && styles.themeButtonActive,
+                      ]}
+                      onPress={() => setTheme(name)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isActive }}
+                      accessibilityLabel={`${THEME_LABELS[name]} theme`}
+                    >
+                      <Text
+                        style={[
+                          styles.themeButtonText,
+                          isActive && styles.themeButtonTextActive,
+                        ]}
+                      >
+                        {THEME_LABELS[name]}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
             {!isGoogleUser ? <PasswordManager /> : null}
             <CategoryManager />
           </ScrollView>
+          <View style={styles.footer}>
+            <Text style={styles.versionText}>Carrot Note {versionLabel}</Text>
+          </View>
           <Logout />
         </View>
       </SafeAreaView>

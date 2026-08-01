@@ -80,6 +80,8 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
       <TouchableOpacity
         style={styles.button}
         onPress={() => setModalVisible(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`Category: ${selectedValue}`}
       >
         <Text style={styles.buttonText}>{selectedValue}</Text>
       </TouchableOpacity>

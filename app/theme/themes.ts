@@ -4,6 +4,7 @@
  the terms of the GNU General Public License v3.
 */
 export type ThemeName = 'light' | 'darkGreen' | 'darkTeal';
+export type ThemePreference = ThemeName | 'system';
 
 export interface ThemeColors {
   background: string;
@@ -81,8 +82,18 @@ export const themes: Record<ThemeName, ThemeColors> = {
   },
 };
 
-export const THEME_LABELS: Record<ThemeName, string> = {
+export const THEME_LABELS: Record<ThemePreference, string> = {
   light: 'Light',
   darkGreen: 'Dark Green',
   darkTeal: 'Dark Teal',
+  system: 'System',
 };
+
+/** Resolves stored preference to the active color palette. */
+export function resolveTheme(
+  preference: ThemePreference,
+  colorScheme: 'light' | 'dark' | null | undefined,
+): ThemeName {
+  if (preference !== 'system') return preference;
+  return colorScheme === 'dark' ? 'darkGreen' : 'light';
+}
