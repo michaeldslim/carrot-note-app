@@ -12,7 +12,7 @@ Use this rule when implementing features, refactors, or UX polish. Prioritize ph
 - **Stack:** Expo 51, React Native, Firebase Auth + Firestore, React Navigation, react-native-paper, reanimated
 - **Screens:** Loading → Calendar (home), NoteList, NoteDetail, Settings, Login/Signup
 - **Data model:** Single flat `Note` type (`title`, `note`, `completed`, `category`, `startDate`, `endDate`)
-- **Themes:** light, darkGreen, darkTeal via `ThemeContext`
+- **Themes:** light, darkGreen, darkTeal, system (follows OS → light/darkGreen) via `ThemeContext`
 - **Architecture:** `NotesProvider` (`app/context/NotesContext.tsx`) + `useNotes` / `useCategories` / `useNoteFilters` hooks; `noteActions` for mutations; real-time `onSnapshot` sync; `Detail` route uses `noteId`
 - **Pain points:** Inline header styles; limited test coverage (`useNotes` hook untested); README still describes generic todo scaffold; search input not yet debounced (§5.3)
 - **Scheduling UX (user-reported):**
@@ -54,11 +54,11 @@ Do this before new note types so extensions don't multiply tech debt.
 
 ---
 
-## Phase 2 — UI Improvements
+## Phase 2 — UI Improvements — **complete**
 
 Match existing design tokens in `app/theme/ui.ts` and `themes.ts`. Do not introduce a second design system.
 
-**Prioritize Phase 2 next** — §2.0–2.2 complete (2.0.2 skipped). **Next: §2.3 Calendar screen UX.**
+**Phase 2 complete** — §2.0–2.2 done earlier (2.0.2 skipped); §2.3–2.7 done. **Next: Phase 3 — note types.**
 
 ### 2.0 Scheduling & event-creation UX — **complete**
 
@@ -118,33 +118,43 @@ Match existing design tokens in `app/theme/ui.ts` and `themes.ts`. Do not introd
 
 **Filter layout (final):** search → status segment + sort button → category chips → results line. Avoid stacking multiple labeled chip rows.
 
-### 2.3 Calendar screen UX
-- Dot indicators on calendar days (count or color by category) — per-day marks for ranges are intentional (§2.0.2 skipped)
-- "Today" quick-jump button
-- Week view toggle (optional, phase 2b)
-- Unify QuickAdd + NoteDetail field layout for consistency (shared date + category fields)
+### 2.3 Calendar screen UX — **done**
 
-### 2.4 Note detail UX
-- Character count for title/body
-- Sticky action bar (Update / Complete / Delete) on scroll
-- Unsaved-changes guard on back navigation
-- Better date picker affordance (show human-readable "Due in 2 days")
+**Implemented:**
+- Category-colored dot indicators via `buildCalendarMarkedDates` + `categoryColors` (CalendarScreen, CalendarModal)
+- "Today" quick-jump button when another day is selected
+- ~~Week view toggle~~ — deferred (optional §2b; not implemented)
+- Shared `CategoryPickerField` + `noteDates` helpers unify QuickAdd and NoteDetail category/date layout
 
-### 2.5 Auth & settings polish
-- Password visibility toggle on Login/Signup
-- App version + build number in Settings footer
+### 2.4 Note detail UX — **done**
+
+**Implemented:**
+- `CharCountField` for title (80) and body (200)
+- Sticky action bar (Update / Delete / Complete) below scroll content
+- Unsaved-changes guard via `beforeRemove` navigation listener
+- `DateRangePicker` + `NoteItem` show human-readable dates and relative due labels (`formatRelativeDue`)
+
+### 2.5 Auth & settings polish — **done**
+
+**Implemented:**
+- Password visibility toggle on Login/Signup (prior slice)
+- App version + build number in Settings footer (`expo-application`)
 - Confirm dialog before logout
-- Respect system color scheme as a 4th theme option (`system` → light/darkGreen/darkTeal)
+- `system` theme preference resolves to light / darkGreen via `useColorScheme`
 
-### 2.6 Accessibility
-- ~~`accessibilityLabel` on swipe actions, filter chips, FAB~~ — partial (§2.2: filters, checkbox, delete)
-- Minimum 44pt touch targets
-- Screen reader announcements on complete/delete
+### 2.6 Accessibility — **done**
 
-### 2.7 Motion
-- Subtle list item enter animation (FadeInDown via reanimated)
-- Spring on filter chip selection
-- Keep animations under 300ms; respect reduced-motion where possible
+**Implemented:**
+- `accessibilityLabel` on swipe actions, filter chips, FAB, settings/logout, date picker
+- Minimum 44pt touch targets on header actions, chips, segments, theme buttons, logout
+- `announceForAccessibility` on complete and delete (`NoteItem`)
+
+### 2.7 Motion — **done**
+
+**Implemented:**
+- `FadeInDown` list item enter animation on NoteList and Calendar agenda (staggered, capped)
+- Spring scale on `CategoryChipRow` selection via Reanimated
+- `useReducedMotion` hook skips enter/chip animations when reduce motion is enabled
 
 ---
 
@@ -280,12 +290,12 @@ Light engagement layer — do not block core productivity features.
 | ~~P0~~ | ~~`noteActions` + optimistic UI + `noteId` nav (§1.3–1.5)~~ | done |
 | ~~P1~~ | ~~Shared UI primitives (§2.1)~~ | done |
 | ~~P1~~ | ~~Note list search/sort/completion (§2.2)~~ | done |
-| P1 | Calendar UX (§2.3) | M |
+| ~~P1~~ | ~~Calendar UX (§2.3)~~ | done |
 | P1 | Note type union + task default | S |
 | P1 | Checklist type | L |
 | P2 | Reminder type + time notifications | M |
 | P2 | Recurring type | L |
-| P2 | Note detail UX (§2.4) | M |
+| ~~P2~~ | ~~Note detail UX (§2.4)~~ | done |
 | P3 | Gamification (streaks) | M |
 | P3 | Expanded test suite | M |
 
