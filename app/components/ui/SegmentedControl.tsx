@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { ui } from '../../theme/ui';
+import { MIN_TOUCH_TARGET } from '../../utils/accessibility';
 
 export type SegmentOption<T extends string> = {
   key: T;
@@ -53,7 +54,7 @@ function SegmentedControl<T extends string>({
           borderRadius: ui.radius.pill,
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: 36,
+          minHeight: MIN_TOUCH_TARGET - 6,
         },
         segmentSelected: {
           backgroundColor: colors.surface,

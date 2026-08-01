@@ -8,6 +8,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeContext';
 import { ui } from '../../theme/ui';
+import { MIN_TOUCH_TARGET } from '../../utils/accessibility';
 
 export type HeaderAction = {
   key: string;
@@ -35,6 +36,8 @@ const ScreenHeaderActions = ({ actions }: ScreenHeaderActionsProps) => {
         button: {
           paddingHorizontal: 10,
           paddingVertical: 7,
+          minHeight: MIN_TOUCH_TARGET,
+          minWidth: MIN_TOUCH_TARGET,
           backgroundColor: colors.surfaceSoft,
           borderWidth: 1,
           borderColor: colors.border,

@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { requestNotificationPermission } from '../service/notificationService';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -28,6 +29,7 @@ import SchedulerFAB from '../components/fab/SchedulerFAB';
 import QuickAddModal from '../components/quickAdd/QuickAddModal';
 import { useNotesContext } from '../context/NotesContext';
 import { useCategories } from '../hooks/useCategories';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import {
   useNoteFilters,
   type CompletionFilter,
@@ -135,6 +137,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
   }, [setSearchQuery, setCompletionFilter, setSortOption, setSelectedCategory]);
 
   const { colors } = useTheme();
+  const reduceMotion = useReducedMotion();
 
   const styles = useMemo(() => {
     return StyleSheet.create({
@@ -279,6 +282,10 @@ const NoteList = ({ navigation }: NoteListProps) => {
       ? '1 note'
       : `${filteredNotes.length} notes`;
 
+  const listEntering = reduceMotion
+    ? undefined
+    : FadeInDown.duration(220).springify().damping(18);
+
   return (
     <SafeAreaView style={styles.safeArea}>
         <GestureHandlerRootView style={styles.container}>
@@ -338,18 +345,26 @@ const NoteList = ({ navigation }: NoteListProps) => {
               refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={refresh} />
               }
-              renderItem={({ item }) => (
-                <NoteItem
-                  note={item}
-                  onPress={() =>
-                    navigation.navigate('Detail', { noteId: item.id })
+              renderItem={({ item, index }) => (
+                <Animated.View
+                  entering={
+                    listEntering
+                      ? listEntering.delay(Math.min(index, 8) * 25)
+                      : undefined
                   }
-                  confirmDelete={confirmDelete}
-                  onToggleComplete={handleToggleComplete}
-                  categoryColor={
-                    item.category ? categoryColors[item.category] : undefined
-                  }
-                />
+                >
+                  <NoteItem
+                    note={item}
+                    onPress={() =>
+                      navigation.navigate('Detail', { noteId: item.id })
+                    }
+                    confirmDelete={confirmDelete}
+                    onToggleComplete={handleToggleComplete}
+                    categoryColor={
+                      item.category ? categoryColors[item.category] : undefined
+                    }
+                  />
+                </Animated.View>
               )}
               contentContainerStyle={styles.listContentContainer}
               showsVerticalScrollIndicator={true}
@@ -407,6 +422,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
       <CalendarModal
         visible={calendarVisible}
         notes={notes}
+        categoryColors={categoryColors}
         onClose={() => setCalendarVisible(false)}
         onNotePress={(note) => navigation.navigate('Detail', { noteId: note.id })}
       />
