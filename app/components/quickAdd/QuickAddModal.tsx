@@ -16,14 +16,14 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { createNote } from '../../service/noteActions';
 import { useTheme } from '../../theme/ThemeContext';
 import { ui } from '../../theme/ui';
 import { Note } from '../../screens/types';
-import CustomDropdown from '../../screens/CustomDropdown';
+import CategoryPickerField from '../noteForm/CategoryPickerField';
 import DateRangePicker from '../dateRangePicker/DateRangePicker';
+import { formatDayLabel } from '../../utils/noteDates';
 
 interface QuickAddModalProps {
   visible: boolean;
@@ -64,7 +64,7 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
   }, [visible, selectedDay]);
 
   const pickerItems = useMemo(
-    () => ['Select an option', ...categories],
+    () => categories,
     [categories],
   );
 
@@ -124,16 +124,9 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
     }
   };
 
-  const formatDayLabel = (day: string) => {
-    const d = new Date(day + 'T00:00:00');
-    return d.toLocaleDateString(undefined, {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+  const formatDayLabelLocal = (day: string) => formatDayLabel(day);
 
-  const dayLabel = useMemo(() => formatDayLabel(startDate), [startDate]);
+  const dayLabel = useMemo(() => formatDayLabelLocal(startDate), [startDate]);
 
   const isMultiDay = endDate !== startDate;
   const dateActionLabel = isMultiDay ? 'Edit dates' : 'Add end date';
@@ -255,13 +248,6 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
         inputActive: {
           borderColor: colors.primary,
         },
-        pickerContainer: {
-          marginBottom: 12,
-          borderColor: colors.border,
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderRadius: ui.radius.md,
-        },
         actions: {
           flexDirection: 'row',
           gap: 10,
@@ -362,7 +348,7 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
                       color={colors.textMuted}
                     />{' '}
                     {endDate !== startDate
-                      ? `${formatDayLabel(startDate)} → ${formatDayLabel(endDate)}`
+                      ? `${formatDayLabelLocal(startDate)} → ${formatDayLabelLocal(endDate)}`
                       : dayLabel}
                   </Text>
                   <TouchableOpacity
@@ -376,25 +362,11 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
               )}
 
               {/* Category picker */}
-              {Platform.OS === 'ios' ? (
-                <CustomDropdown
-                  selectedValue={category}
-                  items={pickerItems}
-                  onValueChange={(value) => setCategory(value)}
-                />
-              ) : (
-                <View style={styles.pickerContainer}>
-                  <Picker
-                    selectedValue={category}
-                    onValueChange={(value) => setCategory(value)}
-                    style={{ color: colors.textPrimary, fontSize: 16 }}
-                  >
-                    {pickerItems.map((item) => (
-                      <Picker.Item key={item} label={item} value={item} />
-                    ))}
-                  </Picker>
-                </View>
-              )}
+              <CategoryPickerField
+                categories={pickerItems}
+                value={category}
+                onValueChange={setCategory}
+              />
 
               {/* Title input */}
               <TextInput

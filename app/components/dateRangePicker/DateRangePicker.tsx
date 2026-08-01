@@ -15,6 +15,7 @@ import {
 import { Calendar } from 'react-native-calendars';
 import { ui } from '../../theme/ui';
 import { useTheme } from '../../theme/ThemeContext';
+import { formatDateRangeLabel, formatRelativeDue } from '../../utils/noteDates';
 
 interface DateRangePickerProps {
   startDate?: string;
@@ -109,8 +110,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
   const styles = useMemo(() => StyleSheet.create({
     triggerButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: 'column',
+      alignItems: 'flex-start',
       paddingVertical: 10,
       paddingHorizontal: 12,
       borderWidth: 1,
@@ -119,11 +120,19 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       backgroundColor: disabled ? colors.surfaceSoft : startDate ? colors.surfaceSoft : colors.surface,
       marginBottom: ui.spacing.md,
       opacity: disabled ? 0.45 : 1,
+      minHeight: 44,
+      justifyContent: 'center',
     },
     triggerText: {
       fontSize: 14,
       color: disabled ? colors.textMuted : startDate ? colors.primaryDark : colors.textMuted,
       fontWeight: startDate && !disabled ? '600' : '400',
+    },
+    relativeText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+      fontWeight: '500',
     },
     overlay: {
       flex: 1,
@@ -210,16 +219,21 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     },
   }), [colors, startDate, disabled]);
 
-  const label = startDate
-    ? endDate && endDate !== startDate
-      ? `${startDate} → ${endDate}`
-      : `${startDate}`
-    : '📅  Set date range (optional)';
+  const label = formatDateRangeLabel(startDate, endDate);
+  const relativeDue = formatRelativeDue(startDate, endDate);
 
   return (
     <>
-      <TouchableOpacity style={styles.triggerButton} onPress={handleOpen}>
+      <TouchableOpacity
+        style={styles.triggerButton}
+        onPress={handleOpen}
+        accessibilityRole="button"
+        accessibilityLabel={startDate ? `Date range: ${label}` : 'Set date range'}
+      >
         <Text style={styles.triggerText}>{label}</Text>
+        {relativeDue ? (
+          <Text style={styles.relativeText}>{relativeDue}</Text>
+        ) : null}
       </TouchableOpacity>
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
         <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setModalVisible(false)}>
