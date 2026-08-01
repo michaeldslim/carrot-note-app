@@ -6,15 +6,17 @@
 import {
   View,
   StyleSheet,
-  TextInput,
   TextStyle,
   Modal,
   Text,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   deleteNoteWithReminder,
   updateNoteWithReminder,
@@ -26,13 +28,22 @@ import { NoteActionButton } from '../components/noteActionButton';
 import { getShadow, ui } from '../theme/ui';
 import { useTheme } from '../theme/ThemeContext';
 import DateRangePicker from '../components/dateRangePicker/DateRangePicker';
+import CategoryPickerField from '../components/noteForm/CategoryPickerField';
+import CharCountField from '../components/noteForm/CharCountField';
 import { useNotesContext } from '../context/NotesContext';
+import { useCategories } from '../hooks/useCategories';
+import { FIREBASE_AUTH } from '../../firebaseConfig';
+import { MIN_TOUCH_TARGET } from '../utils/accessibility';
 
 type NoteDetailProps = NativeStackScreenProps<RootStackList, 'Detail'>;
+
+const CATEGORY_PLACEHOLDER = 'Select an option';
 
 const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
   const { noteId, isJustCreated = false } = route.params;
   const { colors } = useTheme();
+  const userId = FIREBASE_AUTH.currentUser?.uid;
+  const { quickAddCategories } = useCategories(userId);
   const {
     getNoteById,
     loading,
@@ -42,6 +53,7 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
 
   const [editTitle, setEditTitle] = useState<string>('');
   const [editNote, setEditNote] = useState<string>('');
+  const [editCategory, setEditCategory] = useState<string>(CATEGORY_PLACEHOLDER);
   const [editStartDate, setEditStartDate] = useState<string | undefined>();
   const [editEndDate, setEditEndDate] = useState<string | undefined>();
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
@@ -50,6 +62,7 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
     if (!noteItem) return;
     setEditTitle(noteItem.title ?? '');
     setEditNote(noteItem.note);
+    setEditCategory(noteItem.category ?? CATEGORY_PLACEHOLDER);
     setEditStartDate(noteItem.startDate);
     setEditEndDate(noteItem.endDate);
   }, [noteItem]);
@@ -60,11 +73,51 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
     }
   }, [loading, noteItem, navigation]);
 
+  const normalizedOriginalTitle = (noteItem?.title ?? '').trim();
+  const normalizedCurrentTitle = editTitle.trim();
+  const normalizedOriginalNote = (noteItem?.note ?? '').trim();
+  const normalizedCurrentNote = editNote.trim();
+  const originalCategory = noteItem?.category ?? CATEGORY_PLACEHOLDER;
+
+  const isUnchanged =
+    normalizedCurrentNote === normalizedOriginalNote &&
+    normalizedCurrentTitle === normalizedOriginalTitle &&
+    editStartDate === noteItem?.startDate &&
+    editEndDate === noteItem?.endDate &&
+    editCategory === originalCategory;
+
+  const hasUnsavedChanges = !isJustCreated && !isUnchanged;
+  const isDisabled = !isJustCreated && isUnchanged;
+  const updateButtonText = isJustCreated ? 'Save details' : 'Update note';
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (!hasUnsavedChanges) return;
+
+      e.preventDefault();
+      Alert.alert(
+        'Discard changes?',
+        'You have unsaved changes. Leave without saving?',
+        [
+          { text: 'Keep editing', style: 'cancel' },
+          {
+            text: 'Discard',
+            style: 'destructive',
+            onPress: () => navigation.dispatch(e.data.action),
+          },
+        ],
+      );
+    });
+
+    return unsubscribe;
+  }, [navigation, hasUnsavedChanges]);
+
   const styles = useMemo(() => StyleSheet.create({
+    flex: { flex: 1, backgroundColor: colors.background },
     scrollContent: {
       flexGrow: 1,
       paddingTop: 16,
-      paddingBottom: 32,
+      paddingBottom: 16,
     },
     container: {
       marginHorizontal: 16,
@@ -91,50 +144,28 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
       ...ui.typography.subtitle,
       color: colors.textSecondary,
     },
-    titleInput: {
-      fontSize: 16,
-      padding: 12,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: ui.radius.md,
-      width: '100%',
-      marginBottom: ui.spacing.md,
-      backgroundColor: colors.surface,
-      color: colors.textPrimary,
-    },
-    input: {
-      fontSize: 16,
-      padding: 12,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: ui.radius.md,
-      width: '100%',
+    bodyInput: {
       height: 160,
-      marginBottom: ui.spacing.md,
+      textAlignVertical: 'top' as const,
+    },
+    stickyBar: {
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
       backgroundColor: colors.surface,
-      color: colors.textPrimary,
-    },
-    item: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      backgroundColor: colors.background,
-      padding: 15,
-      borderRadius: 5,
-      marginBottom: 10,
-      width: '100%',
-    },
-    buttonContainer: {
-      marginTop: 4,
-      width: '100%',
+      paddingHorizontal: 16,
+      paddingTop: 10,
+      paddingBottom: Platform.OS === 'ios' ? 24 : 14,
+      gap: 8,
+      ...getShadow(colors.shadowColor),
     },
     button: {
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: 10,
+      paddingVertical: 12,
       paddingHorizontal: 15,
-      marginBottom: 10,
       borderRadius: ui.radius.md,
       width: '100%',
+      minHeight: MIN_TOUCH_TARGET,
     },
     buttonText: {
       color: colors.surface,
@@ -180,19 +211,23 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
     },
     modalButtonCancel: {
       flex: 1,
-      padding: 10,
+      padding: 12,
       alignItems: 'center',
       backgroundColor: colors.disabled,
       borderRadius: ui.radius.md,
       marginRight: 5,
+      minHeight: MIN_TOUCH_TARGET,
+      justifyContent: 'center',
     },
     modalButtonDelete: {
       flex: 1,
-      padding: 10,
+      padding: 12,
       alignItems: 'center',
       backgroundColor: colors.danger,
       borderRadius: ui.radius.md,
       marginLeft: 5,
+      minHeight: MIN_TOUCH_TARGET,
+      justifyContent: 'center',
     },
     modalButtonText: {
       color: colors.surface,
@@ -207,26 +242,22 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
     },
   }), [colors]);
 
-  if (loading || !noteItem) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
-  const handleUpdateNote = async () => {
+  const handleUpdateNote = useCallback(async () => {
+    if (!noteItem) return;
+    const categoryValue =
+      editCategory === CATEGORY_PLACEHOLDER ? undefined : editCategory;
     const success = await updateNoteWithReminder(
       noteItem.id,
       {
-        title: editTitle.trim() || undefined,
+        title: normalizedCurrentTitle || undefined,
         note: editNote,
         startDate: editStartDate,
         endDate: editEndDate,
+        category: categoryValue,
       },
       {
         id: noteItem.id,
-        title: editTitle.trim() || undefined,
+        title: normalizedCurrentTitle || undefined,
         note: editNote,
         endDate: editEndDate,
       },
@@ -234,10 +265,18 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
     if (success) {
       navigation.goBack();
     }
-  };
+  }, [
+    noteItem,
+    editCategory,
+    normalizedCurrentTitle,
+    editNote,
+    editStartDate,
+    editEndDate,
+    navigation,
+  ]);
 
   const handleDeleteNote = async () => {
-    if (!noteItem.id) return;
+    if (!noteItem?.id) return;
 
     const success = await deleteNoteWithReminder(noteItem.id);
     if (success) {
@@ -246,15 +285,8 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
     }
   };
 
-  const confirmDelete = () => {
-    setIsModalVisible(true);
-  };
-
-  const cancelDelete = () => {
-    setIsModalVisible(false);
-  };
-
   const handleToggleStatus = async () => {
+    if (!noteItem) return;
     const success = await toggleNoteOptimistic(
       noteItem.id,
       !noteItem.completed,
@@ -264,87 +296,101 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
     }
   };
 
-  const getStatusText = (completed: boolean) => {
-    return completed ? 'Mark as Incomplete' : 'Mark as Complete';
-  };
+  if (loading || !noteItem) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
-  const normalizedOriginalTitle = (noteItem.title ?? '').trim();
-  const normalizedCurrentTitle = editTitle.trim();
-  const normalizedOriginalNote = (noteItem.note ?? '').trim();
-  const normalizedCurrentNote = editNote.trim();
-  const isUnchanged =
-    normalizedCurrentNote === normalizedOriginalNote &&
-    normalizedCurrentTitle === normalizedOriginalTitle &&
-    editStartDate === noteItem.startDate &&
-    editEndDate === noteItem.endDate;
-  const isDisabled = !isJustCreated && isUnchanged;
-  const updateButtonText = isJustCreated ? 'Save details' : 'Update note';
+  const getStatusText = (completed: boolean) =>
+    completed ? 'Mark as Incomplete' : 'Mark as Complete';
 
   const commonButtonStyles = [styles.button, styles.buttonText];
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.scrollContent}
-      keyboardShouldPersistTaps="handled"
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <View style={styles.container}>
-      <View style={styles.formHeader}>
-        <Text style={styles.title}>Update note</Text>
-        <Text style={styles.subtitle}>Update details or manage completion status</Text>
-      </View>
-      <View style={styles.form}>
-        <TextInput
-          style={styles.titleInput}
-          value={editTitle}
-          onChangeText={(text) => setEditTitle(text.trimStart())}
-          placeholder="Todo"
-          maxLength={80}
-          multiline={false}
-        />
-        <TextInput
-          style={styles.input}
-          value={editNote}
-          onChangeText={(text) => setEditNote(text.trimStart())}
-          placeholder="Detail note (optional)"
-          placeholderTextColor={colors.textMuted}
-          maxLength={200}
-          multiline={true}
-          numberOfLines={3}
-          textAlignVertical="top"
-          scrollEnabled={true}
-        />
-        <DateRangePicker
-          startDate={editStartDate}
-          endDate={editEndDate}
-          onConfirm={(s, e) => { setEditStartDate(s); setEditEndDate(e); }}
-          onClear={() => { setEditStartDate(undefined); setEditEndDate(undefined); }}
-        />
-        <View style={styles.buttonContainer}>
-          <NoteUpdateButton
-            disabled={isDisabled}
-            styles={styles}
-            onPress={!isDisabled ? handleUpdateNote : undefined}
-            text={updateButtonText}
-          />
-          <NoteActionButton
-            styles={[...commonButtonStyles, styles.deleteButton]}
-            onPress={confirmDelete}
-            text="Delete note"
-            textStyles={[styles.buttonText]}
-          />
-          <NoteActionButton
-            styles={[...commonButtonStyles, styles.toggleButton]}
-            onPress={handleToggleStatus}
-            text={getStatusText(noteItem.completed)}
-            textStyles={[styles.buttonText]}
-          />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.container}>
+          <View style={styles.formHeader}>
+            <Text style={styles.title}>Update note</Text>
+            <Text style={styles.subtitle}>
+              Update details or manage completion status
+            </Text>
+          </View>
+          <View style={styles.form}>
+            <CategoryPickerField
+              categories={quickAddCategories}
+              value={editCategory}
+              onValueChange={setEditCategory}
+            />
+            <CharCountField
+              value={editTitle}
+              onChangeText={(text) => setEditTitle(text.trimStart())}
+              maxLength={80}
+              placeholder="Todo"
+              label="Title"
+            />
+            <CharCountField
+              value={editNote}
+              onChangeText={(text) => setEditNote(text.trimStart())}
+              maxLength={200}
+              placeholder="Detail note (optional)"
+              label="Details"
+              multiline
+              numberOfLines={3}
+              scrollEnabled
+              inputStyle={styles.bodyInput}
+            />
+            <DateRangePicker
+              startDate={editStartDate}
+              endDate={editEndDate}
+              onConfirm={(s, e) => {
+                setEditStartDate(s);
+                setEditEndDate(e);
+              }}
+              onClear={() => {
+                setEditStartDate(undefined);
+                setEditEndDate(undefined);
+              }}
+            />
+          </View>
         </View>
+      </ScrollView>
+
+      <View style={styles.stickyBar}>
+        <NoteUpdateButton
+          disabled={isDisabled}
+          styles={styles}
+          onPress={!isDisabled ? handleUpdateNote : undefined}
+          text={updateButtonText}
+        />
+        <NoteActionButton
+          styles={[...commonButtonStyles, styles.deleteButton]}
+          onPress={() => setIsModalVisible(true)}
+          text="Delete note"
+          textStyles={[styles.buttonText]}
+        />
+        <NoteActionButton
+          styles={[...commonButtonStyles, styles.toggleButton]}
+          onPress={handleToggleStatus}
+          text={getStatusText(noteItem.completed)}
+          textStyles={[styles.buttonText]}
+        />
       </View>
-      </View>
+
       <Modal
         visible={isModalVisible}
-        transparent={true}
-        statusBarTranslucent={true}
+        transparent
+        statusBarTranslucent
         animationType="fade"
       >
         <View style={styles.modalContainer}>
@@ -355,13 +401,17 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.modalButtonCancel}
-                onPress={cancelDelete}
+                onPress={() => setIsModalVisible(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel delete"
               >
                 <Text style={styles.modalButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.modalButtonDelete}
                 onPress={handleDeleteNote}
+                accessibilityRole="button"
+                accessibilityLabel="Confirm delete"
               >
                 <Text style={styles.modalButtonText}>Delete</Text>
               </TouchableOpacity>
@@ -369,7 +419,7 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 

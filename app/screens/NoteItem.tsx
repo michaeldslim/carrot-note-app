@@ -18,6 +18,8 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { getShadow, ui } from '../theme/ui';
 import { useTheme } from '../theme/ThemeContext';
 import { hapticLight, hapticMedium } from '../utils/haptics';
+import { announceForAccessibility } from '../utils/accessibility';
+import { formatDateRangeLabel, formatRelativeDue } from '../utils/noteDates';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -188,6 +190,7 @@ const NoteItem: React.FC<NoteItemProps> = ({
 
   const handleDelete = () => {
     hapticMedium().then();
+    announceForAccessibility('Note deleted');
     translateX.value = withSpring(-SCREEN_WIDTH);
     itemHeight.value = withSpring(0);
     setIsSwipeOpen(false);
@@ -197,7 +200,11 @@ const NoteItem: React.FC<NoteItemProps> = ({
   const handleToggleComplete = () => {
     if (!onToggleComplete) return;
     hapticLight().then();
-    onToggleComplete(note.id, !note.completed);
+    const nextCompleted = !note.completed;
+    announceForAccessibility(
+      nextCompleted ? 'Note marked complete' : 'Note marked incomplete',
+    );
+    onToggleComplete(note.id, nextCompleted);
   };
 
   const rStyle = useAnimatedStyle(() => ({
@@ -245,6 +252,11 @@ const NoteItem: React.FC<NoteItemProps> = ({
 
   const displayTitle =
     note.title && note.title.trim().length > 0 ? note.title : note.note;
+
+  const dateLabel = note.startDate
+    ? formatDateRangeLabel(note.startDate, note.endDate)
+    : null;
+  const relativeDue = formatRelativeDue(note.startDate, note.endDate);
 
   return (
     <Animated.View style={[styles.rowContainer, rTaskContainerStyle]}>
@@ -295,10 +307,11 @@ const NoteItem: React.FC<NoteItemProps> = ({
                   >
                     {displayTitle}
                   </Text>
-                  {note.startDate && (
+                  {dateLabel && (
                     <Text style={expired && note.endDate ? styles.expiredLabel : styles.dateLabel}>
                       {expired && note.endDate ? '⚠ Expired · ' : ''}
-                      {note.startDate.slice(0, 10)}{note.endDate && note.endDate !== note.startDate ? ` → ${note.endDate.slice(0, 10)}` : ''}
+                      {relativeDue ? `${relativeDue} · ` : ''}
+                      {dateLabel}
                     </Text>
                   )}
                 </View>

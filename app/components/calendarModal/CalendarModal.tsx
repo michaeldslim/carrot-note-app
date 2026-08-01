@@ -17,78 +17,39 @@ import { Calendar } from 'react-native-calendars';
 import { Note } from '../../screens/types';
 import { ui } from '../../theme/ui';
 import { useTheme } from '../../theme/ThemeContext';
+import { buildCalendarMarkedDates } from '../../utils/calendarMarks';
+import { toDateString } from '../../utils/noteDates';
+import { MIN_TOUCH_TARGET } from '../../utils/accessibility';
 
 interface CalendarModalProps {
   visible: boolean;
   notes: Note[];
   onClose: () => void;
   onNotePress: (note: Note) => void;
+  categoryColors?: Record<string, string>;
 }
-
-const toDateString = (iso: string) => iso.slice(0, 10);
 
 const CalendarModal: React.FC<CalendarModalProps> = ({
   visible,
   notes,
   onClose,
   onNotePress,
+  categoryColors = {},
 }) => {
   const { colors, themeName } = useTheme();
   const [selectedDay, setSelectedDay] = React.useState<string | null>(null);
+  const todayStr = toDateString(new Date().toISOString());
 
-  const markedDates = useMemo(() => {
-    const map: Record<string, any> = {};
-    const today = toDateString(new Date().toISOString());
-
-    notes.forEach((note) => {
-      if (!note.startDate) return;
-      const start = toDateString(note.startDate);
-      const end = note.endDate ? toDateString(note.endDate) : start;
-
-      // Mark each day in the range
-      let cursor = new Date(start);
-      const endDate = new Date(end);
-      while (cursor <= endDate) {
-        const key = toDateString(cursor.toISOString());
-        if (!map[key]) {
-          map[key] = { dots: [], marked: true };
-        }
-        if (map[key].dots.length < 3) {
-          map[key].dots.push({ color: colors.primary });
-        }
-        cursor.setDate(cursor.getDate() + 1);
-      }
-    });
-
-    // Also mark notes that have no date range but were created on a day
-    notes.forEach((note) => {
-      if (note.startDate) return;
-      const key = toDateString(note.createdAt);
-      if (!map[key]) {
-        map[key] = { dots: [], marked: true };
-      }
-      if (map[key].dots.length < 3) {
-        map[key].dots.push({ color: colors.textMuted });
-      }
-    });
-
-    if (selectedDay) {
-      map[selectedDay] = {
-        ...(map[selectedDay] || {}),
-        selected: true,
-        selectedColor: colors.primary,
-      };
-    }
-
-    // Highlight today
-    if (!map[today]) map[today] = {};
-    map[today] = {
-      ...(map[today] || {}),
-      today: true,
-    };
-
-    return map;
-  }, [notes, selectedDay, colors]);
+  const markedDates = useMemo(
+    () =>
+      buildCalendarMarkedDates(notes, {
+        selectedDay,
+        todayStr,
+        categoryColors,
+        colors,
+      }),
+    [notes, selectedDay, categoryColors, colors, todayStr],
+  );
 
   const notesOnSelectedDay = useMemo(() => {
     if (!selectedDay) return [];
@@ -189,6 +150,27 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
       fontSize: 13,
       color: colors.textMuted,
     },
+    todayRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      paddingHorizontal: 16,
+      paddingBottom: 6,
+    },
+    todayButton: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      minHeight: MIN_TOUCH_TARGET,
+      justifyContent: 'center',
+      borderRadius: 999,
+      backgroundColor: colors.surfaceSoft,
+      borderWidth: 1,
+      borderColor: colors.primary,
+    },
+    todayButtonText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.primaryDark,
+    },
   }), [colors]);
 
   return (
@@ -199,10 +181,27 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
             <View style={styles.handle} />
             <View style={styles.header}>
               <Text style={styles.headerTitle}>📅 Calendar</Text>
-              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={onClose}
+                accessibilityRole="button"
+                accessibilityLabel="Close calendar"
+              >
                 <Text style={styles.closeText}>Close</Text>
               </TouchableOpacity>
             </View>
+            {selectedDay && selectedDay !== todayStr ? (
+              <View style={styles.todayRow}>
+                <TouchableOpacity
+                  style={styles.todayButton}
+                  onPress={() => setSelectedDay(todayStr)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Jump to today"
+                >
+                  <Text style={styles.todayButtonText}>Today</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
             <Calendar
               key={themeName}
               markingType="multi-dot"

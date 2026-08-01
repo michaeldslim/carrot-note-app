@@ -10,7 +10,9 @@ import {
   FlatList,
   StyleSheet,
   SafeAreaView,
+  TouchableOpacity,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Calendar } from 'react-native-calendars';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useIsFocused } from '@react-navigation/native';
@@ -22,6 +24,10 @@ import SchedulerFAB from '../components/fab/SchedulerFAB';
 import QuickAddModal from '../components/quickAdd/QuickAddModal';
 import { useNotesContext } from '../context/NotesContext';
 import { useCategories } from '../hooks/useCategories';
+import { useReducedMotion } from '../hooks/useReducedMotion';
+import { buildCalendarMarkedDates } from '../utils/calendarMarks';
+import { toDateString } from '../utils/noteDates';
+import { MIN_TOUCH_TARGET } from '../utils/accessibility';
 import {
   EmptyState,
   LoadingState,
@@ -30,15 +36,17 @@ import {
 
 type CalendarScreenProps = NativeStackScreenProps<RootStackList, 'Calendar'>;
 
-const toDateString = (iso: string) => iso.slice(0, 10);
 const todayStr = toDateString(new Date().toISOString());
 
 const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
   const { colors, themeName } = useTheme();
   const isFocused = useIsFocused();
+  const reduceMotion = useReducedMotion();
   const userId = FIREBASE_AUTH.currentUser?.uid;
   const { notes, loading: isLoading, deleteNoteOptimistic } = useNotesContext();
-  const { quickAddCategories } = useCategories(userId, { isFocused });
+  const { quickAddCategories, categoryColors } = useCategories(userId, {
+    isFocused,
+  });
 
   const [selectedDay, setSelectedDay] = useState<string>(todayStr);
   const [quickAddVisible, setQuickAddVisible] = useState(false);
@@ -67,39 +75,16 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
     });
   }, [navigation, headerActions]);
 
-  const markedDates = useMemo(() => {
-    const map: Record<string, any> = {};
-
-    notes.forEach((note) => {
-      const start = note.startDate
-        ? toDateString(note.startDate)
-        : toDateString(note.createdAt);
-      const end = note.endDate ? toDateString(note.endDate) : start;
-
-      let cursor = new Date(start + 'T00:00:00');
-      const endDate = new Date(end + 'T00:00:00');
-      while (cursor <= endDate) {
-        const key = toDateString(cursor.toISOString());
-        if (!map[key]) map[key] = { dots: [], marked: true };
-        if (map[key].dots.length < 3) {
-          map[key].dots.push({ color: colors.primary });
-        }
-        cursor.setDate(cursor.getDate() + 1);
-      }
-    });
-
-    map[selectedDay] = {
-      ...(map[selectedDay] || {}),
-      selected: true,
-      selectedColor: colors.primary,
-      selectedTextColor: colors.surface,
-    };
-
-    if (!map[todayStr]) map[todayStr] = {};
-    map[todayStr] = { ...(map[todayStr] || {}), today: true };
-
-    return map;
-  }, [notes, selectedDay, colors]);
+  const markedDates = useMemo(
+    () =>
+      buildCalendarMarkedDates(notes, {
+        selectedDay,
+        todayStr,
+        categoryColors,
+        colors,
+      }),
+    [notes, selectedDay, categoryColors, colors],
+  );
 
   const agendaNotes = useMemo(() => {
     return notes.filter((note) => {
@@ -128,6 +113,8 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
     });
   }, [selectedDay]);
 
+  const isTodaySelected = selectedDay === todayStr;
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -136,6 +123,27 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
           backgroundColor: colors.background,
           borderBottomWidth: 1,
           borderBottomColor: colors.border,
+        },
+        todayRow: {
+          flexDirection: 'row',
+          justifyContent: 'flex-end',
+          paddingHorizontal: 16,
+          paddingBottom: 6,
+        },
+        todayButton: {
+          paddingHorizontal: 14,
+          paddingVertical: 8,
+          minHeight: MIN_TOUCH_TARGET,
+          justifyContent: 'center',
+          borderRadius: 999,
+          backgroundColor: colors.surfaceSoft,
+          borderWidth: 1,
+          borderColor: colors.primary,
+        },
+        todayButtonText: {
+          fontSize: 13,
+          fontWeight: '700',
+          color: colors.primaryDark,
         },
         agendaHeader: {
           paddingHorizontal: 16,
@@ -166,9 +174,25 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
     [colors],
   );
 
+  const listEntering = reduceMotion
+    ? undefined
+    : FadeInDown.duration(220).springify().damping(18);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.calendarWrapper}>
+        {!isTodaySelected ? (
+          <View style={styles.todayRow}>
+            <TouchableOpacity
+              style={styles.todayButton}
+              onPress={() => setSelectedDay(todayStr)}
+              accessibilityRole="button"
+              accessibilityLabel="Jump to today"
+            >
+              <Text style={styles.todayButtonText}>Today</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
         <Calendar
           key={themeName}
           markingType="multi-dot"
@@ -212,12 +236,25 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
               <View style={styles.divider} />
             </>
           }
-          renderItem={({ item }) => (
-            <NoteItem
-              note={item}
-              onPress={() => navigation.navigate('Detail', { noteId: item.id })}
-              confirmDelete={handleDelete}
-            />
+          renderItem={({ item, index }) => (
+            <Animated.View
+              entering={
+                listEntering
+                  ? listEntering.delay(Math.min(index, 8) * 25)
+                  : undefined
+              }
+            >
+              <NoteItem
+                note={item}
+                onPress={() =>
+                  navigation.navigate('Detail', { noteId: item.id })
+                }
+                confirmDelete={handleDelete}
+                categoryColor={
+                  item.category ? categoryColors[item.category] : undefined
+                }
+              />
+            </Animated.View>
           )}
           ListEmptyComponent={
             <EmptyState

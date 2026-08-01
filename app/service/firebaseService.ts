@@ -102,7 +102,7 @@ export const addNote = async (note: Omit<Note, 'id'>) => {
 
 export const updateNote = async (
   id: string,
-  updates: Partial<Pick<Note, 'title' | 'note' | 'startDate' | 'endDate'>>,
+  updates: Partial<Pick<Note, 'title' | 'note' | 'startDate' | 'endDate' | 'category'>>,
 ) => {
   const editDoc = doc(FIRESTORE_DB, 'notes', id);
   const payload: Record<string, any> = { ...updates };

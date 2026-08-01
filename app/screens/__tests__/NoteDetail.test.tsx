@@ -30,6 +30,16 @@ jest.mock('../../context/NotesContext', () => ({
   }),
 }));
 
+jest.mock('../../hooks/useCategories', () => ({
+  useCategories: () => ({
+    quickAddCategories: ['Home', 'Shopping'],
+  }),
+}));
+
+jest.mock('../../../firebaseConfig', () => ({
+  FIREBASE_AUTH: { currentUser: { uid: 'test-user' } },
+}));
+
 const createProps = () => {
   return {
     route: {
@@ -39,6 +49,8 @@ const createProps = () => {
     },
     navigation: {
       goBack: jest.fn(),
+      addListener: jest.fn(() => jest.fn()),
+      dispatch: jest.fn(),
     },
   } as any;
 };
@@ -78,6 +90,7 @@ describe('NoteDetail screen', () => {
           note: updatedText,
           startDate: undefined,
           endDate: undefined,
+          category: undefined,
         },
         {
           id: '1',

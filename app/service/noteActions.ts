@@ -1,6 +1,6 @@
 /*
- Copyright (C) 2025 Michael Lim - Carrot Note App
- This software is free to use, modify, and share under
+ Copyright (C) 2025 Michael Lim - Carrot Note App 
+ This software is free to use, modify, and share under 
  the terms of the GNU General Public License v3.
 */
 import {
@@ -40,7 +40,7 @@ export async function createNote(
 
 export async function updateNoteWithReminder(
   id: string,
-  updates: Partial<Pick<Note, 'title' | 'note' | 'startDate' | 'endDate'>>,
+  updates: Partial<Pick<Note, 'title' | 'note' | 'startDate' | 'endDate' | 'category'>>,
   reminderFields: NoteReminderFields,
 ): Promise<boolean> {
   try {
