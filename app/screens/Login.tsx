@@ -71,7 +71,7 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         await AsyncStorage.setItem('user', JSON.stringify(user));
-        navigation.replace('List');
+        navigation.replace('Calendar');
       }
     });
 

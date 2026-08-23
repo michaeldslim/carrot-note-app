@@ -49,6 +49,8 @@ const createProps = () => {
     },
     navigation: {
       goBack: jest.fn(),
+      canGoBack: jest.fn(() => true),
+      navigate: jest.fn(),
       addListener: jest.fn(() => jest.fn()),
       dispatch: jest.fn(),
     },

@@ -34,6 +34,7 @@ import { useNotesContext } from '../context/NotesContext';
 import { useCategories } from '../hooks/useCategories';
 import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { MIN_TOUCH_TARGET } from '../utils/accessibility';
+import { safeGoBack } from '../navigation/navigationHelpers';
 
 type NoteDetailProps = NativeStackScreenProps<RootStackList, 'Detail'>;
 
@@ -68,10 +69,10 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
   }, [noteItem]);
 
   useEffect(() => {
-    if (!loading && !noteItem) {
-      navigation.goBack();
+    if (!loading && !noteItem && !isJustCreated) {
+      safeGoBack(navigation);
     }
-  }, [loading, noteItem, navigation]);
+  }, [loading, noteItem, isJustCreated, navigation]);
 
   const normalizedOriginalTitle = (noteItem?.title ?? '').trim();
   const normalizedCurrentTitle = editTitle.trim();
@@ -263,7 +264,7 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
       },
     );
     if (success) {
-      navigation.goBack();
+      safeGoBack(navigation);
     }
   }, [
     noteItem,
@@ -281,7 +282,7 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
     const success = await deleteNoteWithReminder(noteItem.id);
     if (success) {
       setIsModalVisible(false);
-      navigation.goBack();
+      safeGoBack(navigation);
     }
   };
 
@@ -292,7 +293,7 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
       !noteItem.completed,
     );
     if (success) {
-      navigation.goBack();
+      safeGoBack(navigation);
     }
   };
 
