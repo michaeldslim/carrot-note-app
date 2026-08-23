@@ -19,7 +19,7 @@ import { getShadow, ui } from '../theme/ui';
 import { useTheme } from '../theme/ThemeContext';
 import { hapticLight, hapticMedium } from '../utils/haptics';
 import { announceForAccessibility } from '../utils/accessibility';
-import { formatDateRangeLabel, formatRelativeDue } from '../utils/noteDates';
+import { formatDateRangeLabel, formatRelativeDue, formatRecurrenceLabel } from '../utils/noteDates';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -257,6 +257,7 @@ const NoteItem: React.FC<NoteItemProps> = ({
     ? formatDateRangeLabel(note.startDate, note.endDate)
     : null;
   const relativeDue = formatRelativeDue(note.startDate, note.endDate);
+  const recurrenceLabel = formatRecurrenceLabel(note.recurrence);
 
   return (
     <Animated.View style={[styles.rowContainer, rTaskContainerStyle]}>
@@ -307,11 +308,12 @@ const NoteItem: React.FC<NoteItemProps> = ({
                   >
                     {displayTitle}
                   </Text>
-                  {dateLabel && (
+                  {(dateLabel || recurrenceLabel) && (
                     <Text style={expired && note.endDate ? styles.expiredLabel : styles.dateLabel}>
                       {expired && note.endDate ? '⚠ Expired · ' : ''}
                       {relativeDue ? `${relativeDue} · ` : ''}
                       {dateLabel}
+                      {recurrenceLabel ? `${dateLabel ? ' · ' : ''}${recurrenceLabel}` : ''}
                     </Text>
                   )}
                 </View>

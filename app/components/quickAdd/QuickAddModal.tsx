@@ -20,10 +20,19 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { createNote } from '../../service/noteActions';
 import { useTheme } from '../../theme/ThemeContext';
 import { ui } from '../../theme/ui';
-import { Note } from '../../screens/types';
+import { Note, Recurrence } from '../../screens/types';
 import CategoryPickerField from '../noteForm/CategoryPickerField';
 import DateRangePicker from '../dateRangePicker/DateRangePicker';
+import SegmentedControl from '../ui/SegmentedControl';
 import { formatDayLabel } from '../../utils/noteDates';
+
+type RepeatOption = 'none' | Recurrence;
+
+const REPEAT_OPTIONS: { key: RepeatOption; label: string }[] = [
+  { key: 'none', label: 'None' },
+  { key: 'weekly', label: 'Weekly' },
+  { key: 'biweekly', label: '2 weeks' },
+];
 
 interface QuickAddModalProps {
   visible: boolean;
@@ -53,6 +62,7 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
   const [startDate, setStartDate] = useState(selectedDay);
   const [endDate, setEndDate] = useState(selectedDay);
   const [showDateRange, setShowDateRange] = useState(false);
+  const [repeat, setRepeat] = useState<RepeatOption>('none');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -60,6 +70,7 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
       setStartDate(selectedDay);
       setEndDate(selectedDay);
       setShowDateRange(false);
+      setRepeat('none');
     }
   }, [visible, selectedDay]);
 
@@ -76,6 +87,7 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
     setStartDate(selectedDay);
     setEndDate(selectedDay);
     setShowDateRange(false);
+    setRepeat('none');
   };
 
   const handleClose = () => {
@@ -92,8 +104,17 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
     category,
     userId,
     startDate,
-    endDate,
+    endDate: repeat === 'none' ? endDate : startDate,
+    recurrence: repeat === 'none' ? undefined : repeat,
   });
+
+  const handleRepeatChange = (value: RepeatOption) => {
+    setRepeat(value);
+    if (value !== 'none') {
+      setEndDate(startDate);
+      setShowDateRange(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!userId || !canSave) return;
@@ -128,7 +149,7 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
 
   const dayLabel = useMemo(() => formatDayLabelLocal(startDate), [startDate]);
 
-  const isMultiDay = endDate !== startDate;
+  const isMultiDay = repeat === 'none' && endDate !== startDate;
   const dateActionLabel = isMultiDay ? 'Edit dates' : 'Add end date';
 
   const handleDateRangeConfirm = (start: string, end: string) => {
@@ -235,6 +256,15 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
           fontWeight: '600',
           color: colors.textSecondary,
         },
+        repeatLabel: {
+          fontSize: 12,
+          fontWeight: '600',
+          color: colors.textSecondary,
+          marginBottom: 6,
+        },
+        repeatControl: {
+          marginBottom: 12,
+        },
         input: {
           fontSize: 16,
           padding: 12,
@@ -323,7 +353,7 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
             </View>
 
             <View style={styles.body}>
-              {showDateRange ? (
+              {showDateRange && repeat === 'none' ? (
                 <>
                   <DateRangePicker
                     startDate={startDate}
@@ -347,19 +377,31 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
                       size={12}
                       color={colors.textMuted}
                     />{' '}
-                    {endDate !== startDate
-                      ? `${formatDayLabelLocal(startDate)} → ${formatDayLabelLocal(endDate)}`
-                      : dayLabel}
+                    {repeat !== 'none'
+                      ? dayLabel
+                      : endDate !== startDate
+                        ? `${formatDayLabelLocal(startDate)} → ${formatDayLabelLocal(endDate)}`
+                        : dayLabel}
                   </Text>
-                  <TouchableOpacity
-                    style={styles.addEndDateBtn}
-                    onPress={() => setShowDateRange(true)}
-                    accessibilityLabel={dateActionLabel}
-                  >
-                    <Text style={styles.addEndDateText}>{dateActionLabel}</Text>
-                  </TouchableOpacity>
+                  {repeat === 'none' ? (
+                    <TouchableOpacity
+                      style={styles.addEndDateBtn}
+                      onPress={() => setShowDateRange(true)}
+                      accessibilityLabel={dateActionLabel}
+                    >
+                      <Text style={styles.addEndDateText}>{dateActionLabel}</Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
               )}
+
+              <Text style={styles.repeatLabel}>Repeat</Text>
+              <SegmentedControl
+                options={REPEAT_OPTIONS}
+                value={repeat}
+                onChange={handleRepeatChange}
+                style={styles.repeatControl}
+              />
 
               {/* Category picker */}
               <CategoryPickerField
