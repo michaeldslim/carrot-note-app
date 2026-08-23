@@ -11,6 +11,7 @@ import {
 } from '../service/noteActions';
 import { Note } from '../screens/types';
 import { showError } from '../utils/showError';
+import { advanceRecurrenceDates } from '../utils/noteDates';
 
 export interface UseNotesResult {
   notes: Note[];
@@ -96,14 +97,33 @@ export function useNotes(userId: string | undefined): UseNotesResult {
 
   const toggleNoteOptimistic = useCallback(
     async (noteId: string, completed: boolean): Promise<boolean> => {
+      const note = notes.find((item) => item.id === noteId);
       const previousNotes = notes;
+
+      if (completed && note?.recurrence && note.startDate) {
+        const { startDate, endDate } = advanceRecurrenceDates(note);
+        setNotes((current) =>
+          current.map((item) =>
+            item.id === noteId
+              ? { ...item, startDate, endDate, completed: false }
+              : item,
+          ),
+        );
+
+        const success = await toggleNoteStatus(noteId, completed, note);
+        if (!success) {
+          setNotes(previousNotes);
+        }
+        return success;
+      }
+
       setNotes((current) =>
-        current.map((note) =>
-          note.id === noteId ? { ...note, completed } : note,
+        current.map((item) =>
+          item.id === noteId ? { ...item, completed } : item,
         ),
       );
 
-      const success = await toggleNoteStatus(noteId, completed);
+      const success = await toggleNoteStatus(noteId, completed, note);
       if (!success) {
         setNotes(previousNotes);
       }

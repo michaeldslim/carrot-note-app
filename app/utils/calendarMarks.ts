@@ -5,9 +5,11 @@
 */
 import { Note } from '../screens/types';
 import { ThemeColors } from '../theme/themes';
-import { toDateString } from './noteDates';
+import { addDays, getNoteCalendarDays, toDateString } from './noteDates';
 
 const MAX_DOTS_PER_DAY = 3;
+/** Expand recurring marks ±6 months from today for calendar dots. */
+const MARK_RANGE_DAYS = 183;
 
 type MarkedDate = {
   dots?: { color: string }[];
@@ -29,6 +31,8 @@ export function buildCalendarMarkedDates(
 ): Record<string, MarkedDate> {
   const { selectedDay, todayStr, categoryColors, colors } = options;
   const map: Record<string, MarkedDate> = {};
+  const rangeStart = addDays(todayStr, -MARK_RANGE_DAYS);
+  const rangeEnd = addDays(todayStr, MARK_RANGE_DAYS);
 
   const addDot = (dayKey: string, color: string) => {
     if (!map[dayKey]) map[dayKey] = { dots: [], marked: true };
@@ -44,18 +48,9 @@ export function buildCalendarMarkedDates(
         ? categoryColors[note.category]
         : colors.primary;
 
-    if (note.startDate) {
-      const start = toDateString(note.startDate);
-      const end = note.endDate ? toDateString(note.endDate) : start;
-      let cursor = new Date(start + 'T00:00:00');
-      const endDate = new Date(end + 'T00:00:00');
-      while (cursor <= endDate) {
-        addDot(toDateString(cursor.toISOString()), dotColor);
-        cursor.setDate(cursor.getDate() + 1);
-      }
-    } else {
-      addDot(toDateString(note.createdAt), colors.textMuted);
-    }
+    getNoteCalendarDays(note, rangeStart, rangeEnd).forEach((dayKey) => {
+      addDot(dayKey, dotColor);
+    });
   });
 
   if (selectedDay) {

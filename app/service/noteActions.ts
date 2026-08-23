@@ -14,6 +14,7 @@ import {
   upsertDeadlineReminder,
 } from './notificationService';
 import { Note } from '../screens/types';
+import { advanceRecurrenceDates } from '../utils/noteDates';
 import { showError } from '../utils/showError';
 
 type NoteReminderFields = Pick<Note, 'id' | 'title' | 'note' | 'endDate'>;
@@ -40,7 +41,12 @@ export async function createNote(
 
 export async function updateNoteWithReminder(
   id: string,
-  updates: Partial<Pick<Note, 'title' | 'note' | 'startDate' | 'endDate' | 'category'>>,
+  updates: Partial<
+    Pick<
+      Note,
+      'title' | 'note' | 'startDate' | 'endDate' | 'category' | 'recurrence' | 'completed'
+    >
+  >,
   reminderFields: NoteReminderFields,
 ): Promise<boolean> {
   try {
@@ -71,8 +77,25 @@ export async function deleteNoteWithReminder(noteId: string): Promise<boolean> {
 export async function toggleNoteStatus(
   noteId: string,
   completed: boolean,
+  note?: Note,
 ): Promise<boolean> {
   try {
+    if (completed && note?.recurrence && note.startDate) {
+      const { startDate, endDate } = advanceRecurrenceDates(note);
+      await updateNote(noteId, {
+        startDate,
+        endDate,
+        completed: false,
+      });
+      await upsertDeadlineReminder({
+        id: noteId,
+        title: note.title,
+        note: note.note,
+        endDate,
+      });
+      return true;
+    }
+
     await toggleStatus(noteId, completed);
     return true;
   } catch (error) {

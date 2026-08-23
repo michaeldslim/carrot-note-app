@@ -51,6 +51,10 @@ export function mapDocToNote(
     userId: typeof data.userId === 'string' ? (data.userId as string) : undefined,
     startDate: typeof data.startDate === 'string' ? data.startDate : undefined,
     endDate: typeof data.endDate === 'string' ? data.endDate : undefined,
+    recurrence:
+      data.recurrence === 'weekly' || data.recurrence === 'biweekly'
+        ? data.recurrence
+        : undefined,
   };
 }
 
@@ -102,7 +106,12 @@ export const addNote = async (note: Omit<Note, 'id'>) => {
 
 export const updateNote = async (
   id: string,
-  updates: Partial<Pick<Note, 'title' | 'note' | 'startDate' | 'endDate' | 'category'>>,
+  updates: Partial<
+    Pick<
+      Note,
+      'title' | 'note' | 'startDate' | 'endDate' | 'category' | 'recurrence' | 'completed'
+    >
+  >,
 ) => {
   const editDoc = doc(FIRESTORE_DB, 'notes', id);
   const payload: Record<string, any> = { ...updates };
@@ -111,6 +120,9 @@ export const updateNote = async (
   }
   if ('endDate' in updates && updates.endDate === undefined) {
     payload.endDate = deleteField();
+  }
+  if ('recurrence' in updates && updates.recurrence === undefined) {
+    payload.recurrence = deleteField();
   }
   await updateDoc(editDoc, payload);
 };
