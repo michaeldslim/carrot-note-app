@@ -30,6 +30,7 @@ import QuickAddModal from '../components/quickAdd/QuickAddModal';
 import { useNotesContext } from '../context/NotesContext';
 import { useCategories } from '../hooks/useCategories';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import { useRootBackHandler } from '../hooks/useRootBackHandler';
 import {
   useNoteFilters,
   type CompletionFilter,
@@ -100,6 +101,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
   } = useNoteFilters(notes);
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [quickAddVisible, setQuickAddVisible] = useState(false);
+  const [quickAddDay, setQuickAddDay] = useState(todayStr);
   const [sortSheetVisible, setSortSheetVisible] = useState(false);
   const userId = FIREBASE_AUTH.currentUser?.uid;
   const hasRequestedNotificationPermissionRef = useRef<boolean>(false);
@@ -138,6 +140,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
 
   const { colors } = useTheme();
   const reduceMotion = useReducedMotion();
+  useRootBackHandler();
 
   const styles = useMemo(() => {
     return StyleSheet.create({
@@ -228,7 +231,10 @@ const NoteList = ({ navigation }: NoteListProps) => {
     });
   }, [colors]);
 
-  const openQuickAdd = useCallback(() => setQuickAddVisible(true), []);
+  const openQuickAdd = useCallback((day: string = todayStr) => {
+    setQuickAddDay(day);
+    setQuickAddVisible(true);
+  }, []);
 
   const categoryChips = useMemo(
     () =>
@@ -246,7 +252,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
     () => [
       {
         key: 'add',
-        onPress: openQuickAdd,
+        onPress: () => openQuickAdd(),
         accessibilityLabel: 'Add event',
         icon: 'plus' as const,
       },
@@ -384,7 +390,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
                           }
                         : {
                             label: 'Add event',
-                            onPress: openQuickAdd,
+                            onPress: () => openQuickAdd(),
                             accessibilityLabel: 'Add event',
                           }
                     }
@@ -397,7 +403,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
             />
           </View>
         </GestureHandlerRootView>
-      <SchedulerFAB onPress={openQuickAdd} />
+      <SchedulerFAB onPress={() => openQuickAdd()} />
       <SortPickerSheet
         visible={sortSheetVisible}
         selected={sortOption}
@@ -407,7 +413,7 @@ const NoteList = ({ navigation }: NoteListProps) => {
       />
       <QuickAddModal
         visible={quickAddVisible}
-        selectedDay={todayStr}
+        selectedDay={quickAddDay}
         categories={quickAddCategories}
         userId={userId}
         onClose={() => setQuickAddVisible(false)}
@@ -425,6 +431,10 @@ const NoteList = ({ navigation }: NoteListProps) => {
         categoryColors={categoryColors}
         onClose={() => setCalendarVisible(false)}
         onNotePress={(note) => navigation.navigate('Detail', { noteId: note.id })}
+        onAddEvent={(day) => {
+          setCalendarVisible(false);
+          openQuickAdd(day);
+        }}
       />
     </SafeAreaView>
   );

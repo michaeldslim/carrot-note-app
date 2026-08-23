@@ -25,8 +25,9 @@ import QuickAddModal from '../components/quickAdd/QuickAddModal';
 import { useNotesContext } from '../context/NotesContext';
 import { useCategories } from '../hooks/useCategories';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import { useRootBackHandler } from '../hooks/useRootBackHandler';
 import { buildCalendarMarkedDates } from '../utils/calendarMarks';
-import { toDateString } from '../utils/noteDates';
+import { noteOccursOnDay, toDateString } from '../utils/noteDates';
 import { MIN_TOUCH_TARGET } from '../utils/accessibility';
 import {
   EmptyState,
@@ -42,8 +43,9 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
   const { colors, themeName } = useTheme();
   const isFocused = useIsFocused();
   const reduceMotion = useReducedMotion();
+  useRootBackHandler();
   const userId = FIREBASE_AUTH.currentUser?.uid;
-  const { notes, loading: isLoading, deleteNoteOptimistic } = useNotesContext();
+  const { notes, loading: isLoading, deleteNoteOptimistic, toggleNoteOptimistic } = useNotesContext();
   const { quickAddCategories, categoryColors } = useCategories(userId, {
     isFocused,
   });
@@ -87,15 +89,10 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
   );
 
   const agendaNotes = useMemo(() => {
-    return notes.filter((note) => {
-      if (note.startDate) {
-        const start = toDateString(note.startDate);
-        const end = note.endDate ? toDateString(note.endDate) : start;
-        return selectedDay >= start && selectedDay <= end;
-      }
-      return toDateString(note.createdAt) === selectedDay;
-    });
+    return notes.filter((note) => noteOccursOnDay(note, selectedDay));
   }, [notes, selectedDay]);
+
+  const openQuickAdd = useCallback(() => setQuickAddVisible(true), []);
 
   const handleDelete = useCallback(
     async (noteId: string) => {
@@ -149,6 +146,26 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
           paddingHorizontal: 16,
           paddingTop: 14,
           paddingBottom: 6,
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 12,
+        },
+        agendaHeaderText: {
+          flex: 1,
+        },
+        addEventBtn: {
+          paddingHorizontal: 14,
+          paddingVertical: 8,
+          minHeight: MIN_TOUCH_TARGET,
+          justifyContent: 'center',
+          borderRadius: 999,
+          backgroundColor: colors.primary,
+        },
+        addEventBtnText: {
+          fontSize: 13,
+          fontWeight: '700',
+          color: colors.surface,
         },
         agendaTitle: {
           fontSize: 15,
@@ -198,6 +215,10 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
           markingType="multi-dot"
           markedDates={markedDates}
           onDayPress={(day) => setSelectedDay(day.dateString)}
+          onDayLongPress={(day) => {
+            setSelectedDay(day.dateString);
+            setQuickAddVisible(true);
+          }}
           theme={{
             backgroundColor: colors.background,
             calendarBackground: colors.background,
@@ -226,12 +247,22 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
           ListHeaderComponent={
             <>
               <View style={styles.agendaHeader}>
-                <Text style={styles.agendaTitle}>{formattedDay}</Text>
-                <Text style={styles.agendaSubtitle}>
-                  {agendaNotes.length === 0
-                    ? 'No events — tap + to add one'
-                    : `${agendaNotes.length} event${agendaNotes.length === 1 ? '' : 's'}`}
-                </Text>
+                <View style={styles.agendaHeaderText}>
+                  <Text style={styles.agendaTitle}>{formattedDay}</Text>
+                  <Text style={styles.agendaSubtitle}>
+                    {agendaNotes.length === 0
+                      ? 'No events yet'
+                      : `${agendaNotes.length} event${agendaNotes.length === 1 ? '' : 's'}`}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.addEventBtn}
+                  onPress={openQuickAdd}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add event for selected day"
+                >
+                  <Text style={styles.addEventBtnText}>+ Add</Text>
+                </TouchableOpacity>
               </View>
               <View style={styles.divider} />
             </>
@@ -250,6 +281,9 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
                   navigation.navigate('Detail', { noteId: item.id })
                 }
                 confirmDelete={handleDelete}
+                onToggleComplete={(noteId, completed) =>
+                  toggleNoteOptimistic(noteId, completed)
+                }
                 categoryColor={
                   item.category ? categoryColors[item.category] : undefined
                 }
@@ -260,15 +294,18 @@ const CalendarScreen = ({ navigation }: CalendarScreenProps) => {
             <EmptyState
               variant="plain"
               icon="calendar-blank-outline"
-              subtitle={
-                'Nothing scheduled here yet.\nTap + to add your first event.'
-              }
+              subtitle="Nothing scheduled here yet."
+              action={{
+                label: 'Add event',
+                onPress: openQuickAdd,
+                accessibilityLabel: 'Add event for selected day',
+              }}
             />
           }
         />
       )}
 
-      <SchedulerFAB onPress={() => setQuickAddVisible(true)} />
+      <SchedulerFAB onPress={openQuickAdd} />
 
       <QuickAddModal
         visible={quickAddVisible}

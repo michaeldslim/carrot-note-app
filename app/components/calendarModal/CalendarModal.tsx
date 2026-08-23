@@ -18,7 +18,7 @@ import { Note } from '../../screens/types';
 import { ui } from '../../theme/ui';
 import { useTheme } from '../../theme/ThemeContext';
 import { buildCalendarMarkedDates } from '../../utils/calendarMarks';
-import { toDateString } from '../../utils/noteDates';
+import { noteOccursOnDay, toDateString } from '../../utils/noteDates';
 import { MIN_TOUCH_TARGET } from '../../utils/accessibility';
 
 interface CalendarModalProps {
@@ -26,6 +26,7 @@ interface CalendarModalProps {
   notes: Note[];
   onClose: () => void;
   onNotePress: (note: Note) => void;
+  onAddEvent?: (day: string) => void;
   categoryColors?: Record<string, string>;
 }
 
@@ -34,6 +35,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
   notes,
   onClose,
   onNotePress,
+  onAddEvent,
   categoryColors = {},
 }) => {
   const { colors, themeName } = useTheme();
@@ -53,14 +55,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
 
   const notesOnSelectedDay = useMemo(() => {
     if (!selectedDay) return [];
-    return notes.filter((note) => {
-      if (note.startDate) {
-        const start = toDateString(note.startDate);
-        const end = note.endDate ? toDateString(note.endDate) : start;
-        return selectedDay >= start && selectedDay <= end;
-      }
-      return toDateString(note.createdAt) === selectedDay;
-    });
+    return notes.filter((note) => noteOccursOnDay(note, selectedDay));
   }, [notes, selectedDay]);
 
   const styles = useMemo(() => StyleSheet.create({
@@ -117,6 +112,10 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
       paddingHorizontal: 16,
       paddingTop: 12,
       paddingBottom: 6,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
     },
     dayListTitle: {
       fontSize: 15,
@@ -149,6 +148,19 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
     emptyDayText: {
       fontSize: 13,
       color: colors.textMuted,
+    },
+    addEventBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      minHeight: MIN_TOUCH_TARGET,
+      justifyContent: 'center',
+      borderRadius: ui.radius.pill,
+      backgroundColor: colors.primary,
+    },
+    addEventBtnText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.surface,
     },
     todayRow: {
       flexDirection: 'row',
@@ -207,6 +219,10 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
               markingType="multi-dot"
               markedDates={markedDates}
               onDayPress={(day: { dateString: string }) => setSelectedDay(day.dateString)}
+              onDayLongPress={(day: { dateString: string }) => {
+                setSelectedDay(day.dateString);
+                onAddEvent?.(day.dateString);
+              }}
               theme={{
                 backgroundColor: colors.background,
                 calendarBackground: colors.background,
@@ -227,10 +243,30 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
               <ScrollView>
                 <View style={styles.dayListHeader}>
                   <Text style={styles.dayListTitle}>Notes on {selectedDay}</Text>
+                  {onAddEvent ? (
+                    <TouchableOpacity
+                      style={styles.addEventBtn}
+                      onPress={() => onAddEvent(selectedDay)}
+                      accessibilityRole="button"
+                      accessibilityLabel="Add event for selected day"
+                    >
+                      <Text style={styles.addEventBtnText}>+ Add</Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
                 {notesOnSelectedDay.length === 0 ? (
                   <View style={styles.emptyDay}>
                     <Text style={styles.emptyDayText}>No notes for this day.</Text>
+                    {onAddEvent ? (
+                      <TouchableOpacity
+                        style={[styles.addEventBtn, { alignSelf: 'flex-start', marginTop: 10 }]}
+                        onPress={() => onAddEvent(selectedDay)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Add event for selected day"
+                      >
+                        <Text style={styles.addEventBtnText}>Add event</Text>
+                      </TouchableOpacity>
+                    ) : null}
                   </View>
                 ) : (
                   notesOnSelectedDay.map((note) => (
