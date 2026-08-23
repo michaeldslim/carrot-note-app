@@ -11,14 +11,15 @@ Use this rule when implementing features, refactors, or UX polish. Prioritize ph
 
 - **Stack:** Expo 51, React Native, Firebase Auth + Firestore, React Navigation, react-native-paper, reanimated
 - **Screens:** Loading → Calendar (home), NoteList, NoteDetail, Settings, Login/Signup
-- **Data model:** Single flat `Note` type (`title`, `note`, `completed`, `category`, `startDate`, `endDate`)
+- **Data model:** Flat `Note` type (`title`, `note`, `completed`, `category`, `startDate`, `endDate`, optional `recurrence: 'weekly' | 'biweekly'`). Full discriminated union (§3) not yet implemented.
 - **Themes:** light, darkGreen, darkTeal, system (follows OS → light/darkGreen) via `ThemeContext`
-- **Architecture:** `NotesProvider` (`app/context/NotesContext.tsx`) + `useNotes` / `useCategories` / `useNoteFilters` hooks; `noteActions` for mutations; real-time `onSnapshot` sync; `Detail` route uses `noteId`
+- **Architecture:** `NotesProvider` (`app/context/NotesContext.tsx`) + `useNotes` / `useCategories` / `useNoteFilters` hooks; `noteActions` for mutations; real-time `onSnapshot` sync; `Detail` route uses `noteId`; `safeGoBack` + `useRootBackHandler` for navigation edge cases
 - **Pain points:** Inline header styles; limited test coverage (`useNotes` hook untested); README still describes generic todo scaffold; search input not yet debounced (§5.3)
 - **Scheduling UX (user-reported):**
   - ~~**No date range on create**~~ — **done** (§2.0.1): `QuickAddModal` supports date range on create
   - **Range on calendar** — **accepted as-is** (§2.0.2 skipped): per-day dots and agenda rows for ranged events are fine; do not implement period marks or agenda deduplication
-  - ~~**Add flow not discoverable**~~ — **done** (§2.0.3): NoteList has FAB, header +, and empty-state CTA; Calendar already has FAB
+  - ~~**Add flow not discoverable**~~ — **done** (§2.0.3): Calendar + NoteList + CalendarModal add entry points; long-press day to add
+  - ~~**No weekly / biweekly repeat**~~ — **partial** (§3.4): QuickAdd repeat picker; calendar dots + advance-on-complete; full `RecurringNote` type union still pending
 
 ---
 
@@ -58,7 +59,7 @@ Do this before new note types so extensions don't multiply tech debt.
 
 Match existing design tokens in `app/theme/ui.ts` and `themes.ts`. Do not introduce a second design system.
 
-**Phase 2 complete** — §2.0–2.2 done earlier (2.0.2 skipped); §2.3–2.7 done. **Next: Phase 3 — note types.**
+**Phase 2 complete** — §2.0–2.2 done earlier (2.0.2 skipped); §2.3–2.7 done; §2.0.3 calendar add polish done. **Next: Phase 3 — note types** (checklist, reminder, full recurring union).
 
 ### 2.0 Scheduling & event-creation UX — **complete**
 
@@ -81,15 +82,27 @@ Match existing design tokens in `app/theme/ui.ts` and `themes.ts`. Do not introd
 
 #### 2.0.3 Discoverable "add event" entry points — **done**
 
-**Problem:** App lands on Calendar; FAB is icon-only (`SchedulerFAB`). NoteList had no add button — empty state told users to go back to Calendar.
+**Problem:** App lands on Calendar; FAB is icon-only (`SchedulerFAB`). NoteList had no add button — empty state told users to go back to Calendar. Calendar day tap only selected the day; add required a separate FAB tap. CalendarModal was view-only.
 
 **Implemented:**
 - **NoteList:** `SchedulerFAB` + `QuickAddModal` (default `selectedDay` = today)
 - **NoteList:** header **+** beside calendar and settings
 - **NoteList empty state:** "Add event" CTA
-- **Calendar:** existing FAB + empty agenda copy ("Tap + to add…")
+- **Calendar:** FAB + agenda **+ Add** button in day header
+- **Calendar:** empty agenda `EmptyState` with "Add event" CTA
+- **Calendar:** long-press a day → opens `QuickAddModal` for that day
+- **CalendarModal (from NoteList):** **+ Add** / "Add event" for selected day; long-press day opens add flow
+- **Calendar agenda:** inline complete via `toggleNoteOptimistic` on `NoteItem`
+- **Login:** `replace('Calendar')` after sign-in (was `List`, which hid the calendar home)
 
-~~Optional polish (not planned):~~ Calendar header +, extended FAB label, inline Calendar empty CTA.
+### 2.0.4 Navigation robustness — **done**
+
+**Problem:** `GO_BACK` dev warning when Android back pressed on root screens, or when `NoteDetail` called `goBack()` before the note synced after QuickAdd → More…
+
+**Implemented:**
+- `app/navigation/navigationHelpers.ts` — `safeGoBack()` (pop or fallback to Calendar)
+- `app/hooks/useRootBackHandler.ts` — swallow hardware back on root Calendar / NoteList
+- `NoteDetail` — wait for Firestore sync when `isJustCreated`; use `safeGoBack` on save/delete/complete
 
 ### 2.1 Shared UI primitives — **done**
 
@@ -122,6 +135,8 @@ Match existing design tokens in `app/theme/ui.ts` and `themes.ts`. Do not introd
 
 **Implemented:**
 - Category-colored dot indicators via `buildCalendarMarkedDates` + `categoryColors` (CalendarScreen, CalendarModal)
+- Recurring notes expand dots forward/back ±6 months via `getNoteCalendarDays` in `noteDates.ts`
+- Agenda filtering uses shared `noteOccursOnDay()` (single-day, range, and recurring)
 - "Today" quick-jump button when another day is selected
 - ~~Week view toggle~~ — deferred (optional §2b; not implemented)
 - Shared `CategoryPickerField` + `noteDates` helpers unify QuickAdd and NoteDetail category/date layout
@@ -218,9 +233,20 @@ export type Note = TaskNote | ChecklistNote | ReminderNote | RecurringNote;
 - Notification at `remindAt` (extend `notificationService`)
 - NoteItem: clock icon + relative time ("in 3h")
 
-### 3.4 Recurring
-- On complete: spawn next occurrence with updated `startDate`/`endDate`
-- Calendar shows recurring pattern icon
+### 3.4 Recurring — **partial (flat model)**
+
+**Done (without full `RecurringNote` union):**
+- `Note.recurrence?: 'weekly' | 'biweekly'` on flat type + Firestore mapper
+- QuickAdd `SegmentedControl`: None | Weekly | 2 weeks (single-day only when repeating)
+- `noteDates.ts`: `noteOccursOnDay`, `getNoteCalendarDays`, `advanceRecurrenceDates`, `formatRecurrenceLabel`
+- Calendar marks + agenda show future recurring occurrences
+- Complete recurring task → advance `startDate`/`endDate` by 7 or 14 days (stay active)
+- `NoteItem` shows "Repeats weekly" / "Repeats every 2 weeks"
+
+**Still pending (full §3.4):**
+- Discriminated `RecurringNote` type with `daily` | `monthly` | `custom` + `recurrenceDays`
+- Recurring icon on calendar / NoteItem
+- Edit recurrence in `NoteDetail`
 - Settings: default recurrence for new notes
 
 ### 3.5 Type picker in QuickAdd
@@ -261,7 +287,7 @@ Light engagement layer — do not block core productivity features.
 - `useNotes` hook with mocked Firestore
 - `NoteItem` swipe + expired state
 - Checklist completion logic
-- Recurring note spawn on complete
+- ~~Recurring note spawn on complete~~ — logic in `noteDates` / `noteActions`; unit tests not yet added
 
 ### 5.2 Error boundaries
 - Screen-level error boundary with retry
@@ -285,6 +311,8 @@ Light engagement layer — do not block core productivity features.
 | ~~P0~~ | ~~Date range in QuickAdd (§2.0.1)~~ | done |
 | ~~P0~~ | ~~Range calendar display (§2.0.2)~~ | skipped |
 | ~~P0~~ | ~~Add-event affordances (§2.0.3)~~ | done |
+| ~~P0~~ | ~~Calendar add polish + nav fixes (§2.0.3–2.0.4)~~ | done |
+| ~~P1~~ | ~~Weekly/biweekly recurrence (§3.4 partial)~~ | done |
 | ~~P0~~ | ~~`useNotes` + `useCategories` hooks (§1.2)~~ | done |
 | ~~P0~~ | ~~Real-time `onSnapshot` (§1.1)~~ | done |
 | ~~P0~~ | ~~`noteActions` + optimistic UI + `noteId` nav (§1.3–1.5)~~ | done |
@@ -293,8 +321,8 @@ Light engagement layer — do not block core productivity features.
 | ~~P1~~ | ~~Calendar UX (§2.3)~~ | done |
 | P1 | Note type union + task default | S |
 | P1 | Checklist type | L |
+| P2 | Full recurring type union + NoteDetail edit | M |
 | P2 | Reminder type + time notifications | M |
-| P2 | Recurring type | L |
 | ~~P2~~ | ~~Note detail UX (§2.4)~~ | done |
 | P3 | Gamification (streaks) | M |
 | P3 | Expanded test suite | M |
