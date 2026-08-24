@@ -3,7 +3,7 @@
     "name": "Carrot note",
     "slug": "carrotnote",
     "scheme": "carrotnote",
-    "version": "2.0.5",
+    "version": "2.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -30,12 +30,12 @@
       "favicon": "./assets/favicon.png"
     },
     "updates": {
-      "url": "https://u.expo.dev/3aa733a3-d637-45a2-a3a9-31708e970832"
+      "url": "https://u.expo.dev/3f0a43dc-7b58-4419-8259-f6cd807db59c"
     },
-    "runtimeVersion": "2.0.5",
+    "runtimeVersion": "2.1.0",
     "extra": {
       "eas": {
-        "projectId": "3aa733a3-d637-45a2-a3a9-31708e970832"
+        "projectId": "3f0a43dc-7b58-4419-8259-f6cd807db59c"
       }
     },
     "owner": "mike008"
