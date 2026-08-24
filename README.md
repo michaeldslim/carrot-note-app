@@ -83,7 +83,7 @@ module.exports = defaultConfig;
 - Implemented user sign-up, login, and logout functionality using Firebase authentication.
 
 ### Environment setup
-- Copy `.env.example` to `.env.local`.
+- Copy `.env.example` to `.env.local` for **local** builds (`expo run:android`, `expo start`).
 - Configure `EXPO_PUBLIC_ADMIN_EMAILS` with your master/admin email(s).
 - Fill Google OAuth client IDs for Expo/Firebase login:
   - `EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID`
@@ -91,9 +91,15 @@ module.exports = defaultConfig;
   - `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`
   - `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`
 
-Example:
+> **Local vs EAS:** `.env.local` is gitignored and is **not** uploaded to EAS Build. Cloud builds need the same `EXPO_PUBLIC_*` values configured as [EAS environment variables](#eas-environment-variables) (see below).
+
+Example `.env.local`:
 ```
 EXPO_PUBLIC_ADMIN_EMAILS=michaelds.lim@gmail.com
+EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID=your-expo-client-id.apps.googleusercontent.com
+EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=your-android-client-id.apps.googleusercontent.com
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your-ios-client-id.apps.googleusercontent.com
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
 ```
 
 ### Expo prebuild
@@ -129,7 +135,45 @@ eas login
 
 # Link this project to EAS (first time only)
 eas init
+
+# Copy the build config template if you do not have eas.json yet
+cp eas.json.example eas.json
 ```
+
+### EAS environment variables
+
+EAS Build runs in the cloud and **does not receive `.env.local`**. Set the same `EXPO_PUBLIC_*` values in Expo for each build environment:
+
+```bash
+# Production (Play Store / internal production builds)
+eas env:set --name EXPO_PUBLIC_ADMIN_EMAILS --value "you@example.com" --environment production --visibility plaintext
+eas env:set --name EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID --value "YOUR_ID.apps.googleusercontent.com" --environment production --visibility plaintext
+eas env:set --name EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID --value "YOUR_ID.apps.googleusercontent.com" --environment production --visibility plaintext
+eas env:set --name EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID --value "YOUR_ID.apps.googleusercontent.com" --environment production --visibility plaintext
+eas env:set --name EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID --value "YOUR_ID.apps.googleusercontent.com" --environment production --visibility plaintext
+
+# Development (optional — for eas build --profile development)
+eas env:set --name EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID --value "YOUR_ID.apps.googleusercontent.com" --environment development --visibility plaintext
+eas env:set --name EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID --value "YOUR_ID.apps.googleusercontent.com" --environment development --visibility plaintext
+```
+
+List configured variables:
+
+```bash
+eas env:list --environment production
+```
+
+After adding or changing variables, run a **new** EAS build. OTA updates (`eas update`) only help if the binary was already built with the correct env vars inlined.
+
+### Google Sign-In on EAS Android builds
+
+Local debug builds use your **debug keystore SHA-1**. EAS production builds use a **different signing key**. In [Google Cloud Console](https://console.cloud.google.com/) → Credentials → your **Android** OAuth client (`com.mike008.carrotnote`), add the SHA-1 from EAS:
+
+```bash
+eas credentials -p android
+```
+
+Copy the **SHA-1 fingerprint** shown for the build profile keystore and add it to the Android OAuth client, then rebuild.
 
 ### Build
 

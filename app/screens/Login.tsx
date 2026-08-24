@@ -32,8 +32,8 @@ import { getShadow, ui } from '../theme/ui';
 import { useTheme } from '../theme/ThemeContext';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import Constants from 'expo-constants';
-import { GOOGLE_AUTH_CONFIG, isGmailAddress } from '../config/auth';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+import { GOOGLE_AUTH_CONFIG, getGoogleAuthStatus, isGmailAddress } from '../config/auth';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -48,24 +48,37 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState<boolean>(false);
 
   const auth = FIREBASE_AUTH;
-  const isExpoGo = Constants.executionEnvironment === 'storeClient';
-  const proxyClientId = GOOGLE_AUTH_CONFIG.webClientId || GOOGLE_AUTH_CONFIG.clientId;
+  const isExpoGo =
+    Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+  const googleAuthStatus = useMemo(() => getGoogleAuthStatus(), []);
+  const isGoogleConfigured = googleAuthStatus.ready;
 
-  // expo-auth-session throws synchronously on Android if androidClientId is undefined.
-  // Pass a placeholder so the hook never throws; isGoogleConfigured gates the button.
-  const PLACEHOLDER = 'not-configured';
-  const isGoogleConfigured = !!(
-    GOOGLE_AUTH_CONFIG.androidClientId ||
-    GOOGLE_AUTH_CONFIG.iosClientId ||
-    proxyClientId
+  // expo-auth-session throws if androidClientId is undefined; use a placeholder only when unconfigured.
+  const PLACEHOLDER = 'not-configured.apps.googleusercontent.com';
+
+  const googleAuthConfig = useMemo(
+    () =>
+      isGoogleConfigured
+        ? {
+            androidClientId: GOOGLE_AUTH_CONFIG.androidClientId,
+            iosClientId: GOOGLE_AUTH_CONFIG.iosClientId || undefined,
+            webClientId: GOOGLE_AUTH_CONFIG.webClientId || undefined,
+            clientId: isExpoGo
+              ? GOOGLE_AUTH_CONFIG.clientId || GOOGLE_AUTH_CONFIG.webClientId
+              : undefined,
+          }
+        : {
+            androidClientId: PLACEHOLDER,
+            iosClientId: PLACEHOLDER,
+            webClientId: PLACEHOLDER,
+            clientId: PLACEHOLDER,
+          },
+    [isExpoGo, isGoogleConfigured],
   );
 
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: isExpoGo ? proxyClientId || PLACEHOLDER : PLACEHOLDER,
-    androidClientId: (isExpoGo ? proxyClientId : GOOGLE_AUTH_CONFIG.androidClientId) || PLACEHOLDER,
-    iosClientId: GOOGLE_AUTH_CONFIG.iosClientId || PLACEHOLDER,
-    webClientId: GOOGLE_AUTH_CONFIG.webClientId || undefined,
-  });
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest(
+    googleAuthConfig,
+  );
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -138,14 +151,27 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
   };
 
   const handleGoogleLogin = async () => {
-    if (!isGoogleConfigured || !request) {
-      setError('Google login is unavailable. Check your OAuth client IDs.');
+    if (!isGoogleConfigured) {
+      setError(
+        googleAuthStatus.reason ??
+          'Google login is unavailable. Check your OAuth client IDs.',
+      );
+      return;
+    }
+
+    if (!request) {
+      setError('Google sign-in is still loading. Try again in a moment.');
       return;
     }
 
     setError(null);
     setIsGoogleSubmitting(true);
-    await promptAsync();
+    try {
+      await promptAsync();
+    } catch {
+      setError('Google login failed to open. Please try again.');
+      setIsGoogleSubmitting(false);
+    }
   };
 
   const { colors } = useTheme();
@@ -304,7 +330,17 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
 
   const isDisabled =
     !email.trim() || !password.trim() || isSubmitting || isGoogleSubmitting;
-  const isGoogleDisabled = !isGoogleConfigured || !request || isSubmitting || isGoogleSubmitting;
+  const isGoogleWaitingForRequest = isGoogleConfigured && !request;
+  const isGoogleDisabled =
+    !isGoogleConfigured ||
+    isGoogleWaitingForRequest ||
+    isSubmitting ||
+    isGoogleSubmitting;
+  const googleButtonLabel = isGoogleSubmitting
+    ? 'Connecting Google...'
+    : isGoogleWaitingForRequest
+      ? 'Preparing Google sign-in...'
+      : 'Continue with Google';
 
   if (isGoogleSubmitting) {
     return (
@@ -343,11 +379,13 @@ const Login: React.FC<NoteListProps> = ({ navigation }) => {
             onPress={handleGoogleLogin}
             disabled={isGoogleDisabled}
           >
-            <Text style={styles.googlePrimaryButtonText}>
-              {isGoogleSubmitting ? 'Connecting Google...' : 'Continue with Google'}
-            </Text>
+            <Text style={styles.googlePrimaryButtonText}>{googleButtonLabel}</Text>
           </TouchableOpacity>
-          <Text style={styles.googleHint}>Gmail accounts only</Text>
+          <Text style={styles.googleHint}>
+            {isGoogleConfigured
+              ? 'Gmail accounts only'
+              : (googleAuthStatus.reason ?? 'Google sign-in is not configured.')}
+          </Text>
 
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
