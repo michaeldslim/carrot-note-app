@@ -35,6 +35,13 @@ import {
 
 const notesCollection = collection(FIRESTORE_DB, 'notes');
 
+/** Firestore rejects `undefined` field values; omit those keys before write. */
+function omitUndefinedFields<T extends Record<string, unknown>>(data: T): DocumentData {
+  return Object.fromEntries(
+    Object.entries(data).filter(([, value]) => value !== undefined),
+  );
+}
+
 export function mapDocToNote(
   docSnap: QueryDocumentSnapshot<DocumentData>,
 ): Note {
@@ -100,7 +107,7 @@ export const fetchNotes = async (userId: string): Promise<Note[]> => {
 };
 
 export const addNote = async (note: Omit<Note, 'id'>) => {
-  const docRef = await addDoc(notesCollection, note);
+  const docRef = await addDoc(notesCollection, omitUndefinedFields(note));
   return docRef.id;
 };
 

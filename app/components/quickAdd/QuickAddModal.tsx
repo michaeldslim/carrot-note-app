@@ -96,17 +96,24 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
   };
 
   /** Builds the base note payload from current form state */
-  const buildNotePayload = (): Omit<Note, 'id'> => ({
-    title: title.trim(),
-    note: '',
-    completed: false,
-    createdAt: new Date().toISOString(),
-    category,
-    userId,
-    startDate,
-    endDate: repeat === 'none' ? endDate : startDate,
-    recurrence: repeat === 'none' ? undefined : repeat,
-  });
+  const buildNotePayload = (): Omit<Note, 'id'> => {
+    const payload: Omit<Note, 'id'> = {
+      title: title.trim(),
+      note: '',
+      completed: false,
+      createdAt: new Date().toISOString(),
+      category,
+      userId,
+      startDate,
+      endDate: repeat === 'none' ? endDate : startDate,
+    };
+
+    if (repeat !== 'none') {
+      payload.recurrence = repeat;
+    }
+
+    return payload;
+  };
 
   const handleRepeatChange = (value: RepeatOption) => {
     setRepeat(value);
