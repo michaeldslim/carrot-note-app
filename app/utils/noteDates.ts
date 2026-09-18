@@ -63,8 +63,14 @@ export const formatRelativeDue = (
   return `Due in ${diffDays} days`;
 };
 
+const RECURRENCE_INTERVAL_DAYS: Record<Recurrence, number> = {
+  weekly: 7,
+  biweekly: 14,
+  every10days: 10,
+};
+
 export const recurrenceIntervalDays = (recurrence: Recurrence): number =>
-  recurrence === 'biweekly' ? 14 : 7;
+  RECURRENCE_INTERVAL_DAYS[recurrence];
 
 export const daysBetween = (startDay: string, endDay: string): number => {
   const start = parseLocalDate(startDay);
@@ -167,5 +173,6 @@ export const advanceRecurrenceDates = (
 export const formatRecurrenceLabel = (recurrence?: Recurrence): string | null => {
   if (recurrence === 'weekly') return 'Repeats weekly';
   if (recurrence === 'biweekly') return 'Repeats every 2 weeks';
+  if (recurrence === 'every10days') return 'Repeats every 10 days';
   return null;
 };

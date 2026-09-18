@@ -59,7 +59,9 @@ export function mapDocToNote(
     startDate: typeof data.startDate === 'string' ? data.startDate : undefined,
     endDate: typeof data.endDate === 'string' ? data.endDate : undefined,
     recurrence:
-      data.recurrence === 'weekly' || data.recurrence === 'biweekly'
+      data.recurrence === 'weekly' ||
+      data.recurrence === 'biweekly' ||
+      data.recurrence === 'every10days'
         ? data.recurrence
         : undefined,
   };

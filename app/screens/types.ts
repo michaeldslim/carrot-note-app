@@ -4,7 +4,7 @@
  the terms of the GNU General Public License v3.
 */
 /** Repeat interval for scheduled tasks. */
-export type Recurrence = 'weekly' | 'biweekly';
+export type Recurrence = 'weekly' | 'biweekly' | 'every10days';
 
 export interface Note {
   id: string;
@@ -16,6 +16,6 @@ export interface Note {
   userId?: string;
   startDate?: string;
   endDate?: string;
-  /** When set, the task repeats on the same weekday every 7 or 14 days from startDate. */
+  /** When set, the task repeats every N calendar days from startDate (7, 10, or 14). */
   recurrence?: Recurrence;
 }

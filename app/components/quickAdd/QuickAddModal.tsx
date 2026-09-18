@@ -32,6 +32,7 @@ const REPEAT_OPTIONS: { key: RepeatOption; label: string }[] = [
   { key: 'none', label: 'None' },
   { key: 'weekly', label: 'Weekly' },
   { key: 'biweekly', label: '2 weeks' },
+  { key: 'every10days', label: '10 days' },
 ];
 
 interface QuickAddModalProps {
