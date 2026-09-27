@@ -7,6 +7,7 @@ import { FIRESTORE_DB } from '../../firebaseConfig';
 import {
   collection,
   addDoc,
+  setDoc,
   getDocs,
   doc,
   updateDoc,
@@ -108,9 +109,18 @@ export const fetchNotes = async (userId: string): Promise<Note[]> => {
   }
 };
 
+export function newNoteDocumentId(): string {
+  return doc(notesCollection).id;
+}
+
 export const addNote = async (note: Omit<Note, 'id'>) => {
   const docRef = await addDoc(notesCollection, omitUndefinedFields(note));
   return docRef.id;
+};
+
+export const setNote = async (id: string, note: Omit<Note, 'id'>) => {
+  const noteDoc = doc(FIRESTORE_DB, 'notes', id);
+  await setDoc(noteDoc, omitUndefinedFields(note));
 };
 
 export const updateNote = async (
