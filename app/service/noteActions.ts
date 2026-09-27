@@ -4,10 +4,11 @@
  the terms of the GNU General Public License v3.
 */
 import {
-  addNote,
+  setNote,
   updateNote,
   toggleStatus,
   deleteNote,
+  newNoteDocumentId,
 } from './firebaseService';
 import {
   cancelDeadlineReminder,
@@ -16,22 +17,58 @@ import {
 import { Note } from '../screens/types';
 import { advanceRecurrenceDates } from '../utils/noteDates';
 import { showError } from '../utils/showError';
+import { isOfflineError } from '../utils/networkErrors';
+import {
+  savePendingNote,
+  updatePendingNote,
+  removePendingNote,
+  isPendingNote,
+  queueOfflineMutation,
+} from './localNoteCache';
+import { FIREBASE_AUTH } from '../../firebaseConfig';
 
 type NoteReminderFields = Pick<Note, 'id' | 'title' | 'note' | 'endDate'>;
+
+function currentUserId(): string | undefined {
+  return FIREBASE_AUTH.currentUser?.uid;
+}
 
 export async function createNote(
   note: Omit<Note, 'id'>,
 ): Promise<string | null> {
+  const userId = note.userId ?? currentUserId();
+  if (!userId) {
+    showError('You must be signed in to save a note');
+    return null;
+  }
+
+  const noteId = newNoteDocumentId();
+  const localNote: Note = { ...note, id: noteId, userId };
+
+  await savePendingNote(userId, localNote);
+
   try {
-    const newId = await addNote(note);
+    await setNote(noteId, { ...note, userId });
+    await removePendingNote(userId, noteId);
     await upsertDeadlineReminder({
-      id: newId,
+      id: noteId,
       title: note.title,
       note: note.note,
       endDate: note.endDate,
     });
-    return newId;
+    return noteId;
   } catch (error) {
+    if (isOfflineError(error)) {
+      await upsertDeadlineReminder({
+        id: noteId,
+        title: note.title,
+        note: note.note,
+        endDate: note.endDate,
+      });
+      return noteId;
+    }
+
+    await removePendingNote(userId, noteId);
     const message =
       error instanceof Error ? error.message : 'Failed to create note';
     showError(message);
@@ -49,11 +86,29 @@ export async function updateNoteWithReminder(
   >,
   reminderFields: NoteReminderFields,
 ): Promise<boolean> {
+  const userId = currentUserId();
+  if (!userId) {
+    showError('You must be signed in to update a note');
+    return false;
+  }
+
+  if (await isPendingNote(userId, id)) {
+    const updated = await updatePendingNote(userId, id, updates);
+    if (!updated) return false;
+    await upsertDeadlineReminder(reminderFields);
+    return true;
+  }
+
   try {
     await updateNote(id, updates);
     await upsertDeadlineReminder(reminderFields);
     return true;
   } catch (error) {
+    if (isOfflineError(error)) {
+      await queueOfflineMutation(userId, { noteId: id, type: 'update', updates });
+      await upsertDeadlineReminder(reminderFields);
+      return true;
+    }
     const message =
       error instanceof Error ? error.message : 'Failed to update note';
     showError(message);
@@ -62,11 +117,28 @@ export async function updateNoteWithReminder(
 }
 
 export async function deleteNoteWithReminder(noteId: string): Promise<boolean> {
+  const userId = currentUserId();
+  if (!userId) {
+    showError('You must be signed in to delete a note');
+    return false;
+  }
+
+  if (await isPendingNote(userId, noteId)) {
+    await removePendingNote(userId, noteId);
+    await cancelDeadlineReminder(noteId);
+    return true;
+  }
+
   try {
     await deleteNote(noteId);
     await cancelDeadlineReminder(noteId);
     return true;
   } catch (error) {
+    if (isOfflineError(error)) {
+      await queueOfflineMutation(userId, { noteId, type: 'delete' });
+      await cancelDeadlineReminder(noteId);
+      return true;
+    }
     const message =
       error instanceof Error ? error.message : 'Failed to delete note';
     showError(message);
@@ -79,14 +151,36 @@ export async function toggleNoteStatus(
   completed: boolean,
   note?: Note,
 ): Promise<boolean> {
+  const userId = currentUserId();
+  if (!userId) {
+    showError('You must be signed in to update a note');
+    return false;
+  }
+
   try {
     if (completed && note?.recurrence && note.startDate) {
       const { startDate, endDate } = advanceRecurrenceDates(note);
-      await updateNote(noteId, {
+      const updates = {
         startDate,
         endDate,
-        completed: false,
-      });
+        completed: false as const,
+      };
+
+      if (await isPendingNote(userId, noteId)) {
+        await updatePendingNote(userId, noteId, updates);
+      } else {
+        try {
+          await updateNote(noteId, updates);
+        } catch (error) {
+          if (!isOfflineError(error)) throw error;
+          await queueOfflineMutation(userId, {
+            noteId,
+            type: 'update',
+            updates,
+          });
+        }
+      }
+
       await upsertDeadlineReminder({
         id: noteId,
         title: note.title,
@@ -96,7 +190,21 @@ export async function toggleNoteStatus(
       return true;
     }
 
-    await toggleStatus(noteId, completed);
+    if (await isPendingNote(userId, noteId)) {
+      await updatePendingNote(userId, noteId, { completed });
+      return true;
+    }
+
+    try {
+      await toggleStatus(noteId, completed);
+    } catch (error) {
+      if (!isOfflineError(error)) throw error;
+      await queueOfflineMutation(userId, {
+        noteId,
+        type: 'update',
+        updates: { completed },
+      });
+    }
     return true;
   } catch (error) {
     const message =

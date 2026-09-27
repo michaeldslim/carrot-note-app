@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { createNote } from '../../service/noteActions';
+import { useNotesContext } from '../../context/NotesContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { ui } from '../../theme/ui';
 import { Note, Recurrence } from '../../screens/types';
@@ -58,6 +59,7 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
   onMoreDetails,
 }) => {
   const { colors } = useTheme();
+  const { reloadLocalCache } = useNotesContext();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Select an option');
   const [startDate, setStartDate] = useState(selectedDay);
@@ -131,6 +133,7 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
       const payload = buildNotePayload();
       const newId = await createNote(payload);
       if (!newId) return;
+      await reloadLocalCache();
       reset();
       onSaved();
     } finally {
@@ -146,6 +149,7 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
       const payload = buildNotePayload();
       const newId = await createNote(payload);
       if (!newId) return;
+      await reloadLocalCache();
       reset();
       onMoreDetails(newId);
     } finally {
