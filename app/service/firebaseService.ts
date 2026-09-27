@@ -28,6 +28,7 @@ import {
 import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { getAuthErrorMessage } from './firebaseErrors';
 import { Alert } from 'react-native';
+import { isOfflineError } from '../utils/networkErrors';
 import { CategoryRecord } from '../types/category';
 import {
   getCategoryColorForIndex,
@@ -230,6 +231,7 @@ export const addCategories = async (
 
 export const fetchCategoryRecords = async (
   userId: string,
+  options?: { silent?: boolean },
 ): Promise<CategoryRecord[]> => {
   try {
     const categoriesCollection = collection(FIRESTORE_DB, 'categories');
@@ -251,10 +253,13 @@ export const fetchCategoryRecords = async (
       a.name.localeCompare(b.name),
     );
   } catch (error) {
-    if (error instanceof Error) {
-      Alert.alert('Error', `Fetching categories: ${error.message}`);
-    } else {
-      Alert.alert('Error', 'An unknown error occurred');
+    const silent = options?.silent || isOfflineError(error);
+    if (!silent) {
+      if (error instanceof Error) {
+        Alert.alert('Error', `Fetching categories: ${error.message}`);
+      } else {
+        Alert.alert('Error', 'An unknown error occurred');
+      }
     }
     return [];
   }

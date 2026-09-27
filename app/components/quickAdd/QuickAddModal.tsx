@@ -77,6 +77,13 @@ const QuickAddModal: React.FC<QuickAddModalProps> = ({
     }
   }, [visible, selectedDay]);
 
+  useEffect(() => {
+    if (!visible || categories.length === 0) return;
+    if (category === 'Select an option') {
+      setCategory(categories[0]);
+    }
+  }, [visible, categories, category]);
+
   const pickerItems = useMemo(
     () => categories,
     [categories],

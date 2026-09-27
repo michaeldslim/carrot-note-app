@@ -8,10 +8,23 @@ import {
   addCategories,
   fetchCategoryRecords,
 } from '../service/firebaseService';
+import {
+  getCachedCategoryRecords,
+  saveCachedCategoryRecords,
+} from '../service/localCategoryCache';
 import { CategoryRecord } from '../types/category';
+import { getCategoryColorForIndex } from '../utils/categoryColors';
 import { showError } from '../utils/showError';
+import { isOfflineError } from '../utils/networkErrors';
 
 const DEFAULT_CATEGORIES = ['Home', 'Shopping'];
+
+function buildDefaultCategoryRecords(): CategoryRecord[] {
+  return DEFAULT_CATEGORIES.map((name, index) => ({
+    name,
+    color: getCategoryColorForIndex(index),
+  }));
+}
 
 export interface UseCategoriesOptions {
   /** Prepends "Select an option" for picker UIs (NoteList). */
@@ -49,23 +62,45 @@ export function useCategories(
 
     let cancelled = false;
 
+    const applyRecords = async (records: CategoryRecord[]) => {
+      if (cancelled || records.length === 0) return;
+      setCategoryRecords(records);
+      await saveCachedCategoryRecords(userId, records);
+    };
+
     const loadCategories = async () => {
       setLoading(true);
+
+      const cached = await getCachedCategoryRecords(userId);
+      if (!cancelled && cached.length > 0) {
+        setCategoryRecords(cached);
+        setLoading(false);
+      }
+
       try {
-        let fetched = await fetchCategoryRecords(userId);
+        let fetched = await fetchCategoryRecords(userId, { silent: true });
         if (cancelled) return;
 
         if (fetched.length === 0) {
           await addCategories(userId, DEFAULT_CATEGORIES);
           if (!cancelled) {
-            fetched = await fetchCategoryRecords(userId);
-            setCategoryRecords(fetched);
+            fetched = await fetchCategoryRecords(userId, { silent: true });
           }
-        } else {
-          setCategoryRecords(fetched);
+        }
+
+        if (fetched.length > 0) {
+          await applyRecords(fetched);
+        } else if (cached.length === 0) {
+          await applyRecords(buildDefaultCategoryRecords());
         }
       } catch (error) {
-        if (!cancelled) {
+        if (cancelled) return;
+
+        if (cached.length === 0) {
+          await applyRecords(buildDefaultCategoryRecords());
+        }
+
+        if (!isOfflineError(error)) {
           const message =
             error instanceof Error
               ? error.message
