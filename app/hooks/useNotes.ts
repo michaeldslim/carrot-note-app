@@ -71,6 +71,7 @@ export function useNotes(userId: string | undefined): UseNotesResult {
     if (!userId) {
       setPendingNotes([]);
       setOfflineMutations([]);
+      setLoading(false);
       return;
     }
 
@@ -80,6 +81,8 @@ export function useNotes(userId: string | undefined): UseNotesResult {
     ]);
     setPendingNotes(pending);
     setOfflineMutations(mutations);
+    // Local cache is enough to render; do not wait on Firestore when offline.
+    setLoading(false);
   }, [userId]);
 
   const runSync = useCallback(async () => {
@@ -120,7 +123,16 @@ export function useNotes(userId: string | undefined): UseNotesResult {
       return;
     }
 
-    setLoading(true);
+    let cancelled = false;
+    NetInfo.fetch().then((state) => {
+      if (cancelled) return;
+      const online =
+        state.isConnected === true && state.isInternetReachable !== false;
+      if (!online) {
+        setLoading(false);
+      }
+    });
+
     const unsubscribe = subscribeToNotes(
       userId,
       (nextNotes) => {
@@ -140,7 +152,10 @@ export function useNotes(userId: string | undefined): UseNotesResult {
       },
     );
 
-    return unsubscribe;
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, [userId, runSync]);
 
   const refresh = useCallback(async () => {

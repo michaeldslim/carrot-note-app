@@ -297,12 +297,15 @@ const NoteDetail = ({ route, navigation }: NoteDetailProps) => {
     }
   };
 
-  if (loading || !noteItem) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+  if (!noteItem) {
+    if (loading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      );
+    }
+    return null;
   }
 
   const getStatusText = (completed: boolean) =>
