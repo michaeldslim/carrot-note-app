@@ -19,6 +19,11 @@ import { advanceRecurrenceDates } from '../utils/noteDates';
 import { showError } from '../utils/showError';
 import { isOfflineError } from '../utils/networkErrors';
 import {
+  isDeviceOnline,
+  isTimeoutError,
+  withTimeout,
+} from '../utils/networkStatus';
+import {
   savePendingNote,
   updatePendingNote,
   removePendingNote,
@@ -31,6 +36,10 @@ type NoteReminderFields = Pick<Note, 'id' | 'title' | 'note' | 'endDate'>;
 
 function currentUserId(): string | undefined {
   return FIREBASE_AUTH.currentUser?.uid;
+}
+
+function isRetriableNetworkFailure(error: unknown): boolean {
+  return isOfflineError(error) || isTimeoutError(error);
 }
 
 export async function createNote(
@@ -47,24 +56,27 @@ export async function createNote(
 
   await savePendingNote(userId, localNote);
 
-  try {
-    await setNote(noteId, { ...note, userId });
-    await removePendingNote(userId, noteId);
-    await upsertDeadlineReminder({
+  const scheduleReminder = () =>
+    upsertDeadlineReminder({
       id: noteId,
       title: note.title,
       note: note.note,
       endDate: note.endDate,
     });
+
+  if (!(await isDeviceOnline())) {
+    await scheduleReminder();
+    return noteId;
+  }
+
+  try {
+    await withTimeout(setNote(noteId, { ...note, userId }));
+    await removePendingNote(userId, noteId);
+    await scheduleReminder();
     return noteId;
   } catch (error) {
-    if (isOfflineError(error)) {
-      await upsertDeadlineReminder({
-        id: noteId,
-        title: note.title,
-        note: note.note,
-        endDate: note.endDate,
-      });
+    if (isRetriableNetworkFailure(error)) {
+      await scheduleReminder();
       return noteId;
     }
 
@@ -99,12 +111,18 @@ export async function updateNoteWithReminder(
     return true;
   }
 
+  if (!(await isDeviceOnline())) {
+    await queueOfflineMutation(userId, { noteId: id, type: 'update', updates });
+    await upsertDeadlineReminder(reminderFields);
+    return true;
+  }
+
   try {
-    await updateNote(id, updates);
+    await withTimeout(updateNote(id, updates));
     await upsertDeadlineReminder(reminderFields);
     return true;
   } catch (error) {
-    if (isOfflineError(error)) {
+    if (isRetriableNetworkFailure(error)) {
       await queueOfflineMutation(userId, { noteId: id, type: 'update', updates });
       await upsertDeadlineReminder(reminderFields);
       return true;
@@ -129,12 +147,18 @@ export async function deleteNoteWithReminder(noteId: string): Promise<boolean> {
     return true;
   }
 
+  if (!(await isDeviceOnline())) {
+    await queueOfflineMutation(userId, { noteId, type: 'delete' });
+    await cancelDeadlineReminder(noteId);
+    return true;
+  }
+
   try {
-    await deleteNote(noteId);
+    await withTimeout(deleteNote(noteId));
     await cancelDeadlineReminder(noteId);
     return true;
   } catch (error) {
-    if (isOfflineError(error)) {
+    if (isRetriableNetworkFailure(error)) {
       await queueOfflineMutation(userId, { noteId, type: 'delete' });
       await cancelDeadlineReminder(noteId);
       return true;
@@ -168,11 +192,17 @@ export async function toggleNoteStatus(
 
       if (await isPendingNote(userId, noteId)) {
         await updatePendingNote(userId, noteId, updates);
+      } else if (!(await isDeviceOnline())) {
+        await queueOfflineMutation(userId, {
+          noteId,
+          type: 'update',
+          updates,
+        });
       } else {
         try {
-          await updateNote(noteId, updates);
+          await withTimeout(updateNote(noteId, updates));
         } catch (error) {
-          if (!isOfflineError(error)) throw error;
+          if (!isRetriableNetworkFailure(error)) throw error;
           await queueOfflineMutation(userId, {
             noteId,
             type: 'update',
@@ -195,15 +225,23 @@ export async function toggleNoteStatus(
       return true;
     }
 
-    try {
-      await toggleStatus(noteId, completed);
-    } catch (error) {
-      if (!isOfflineError(error)) throw error;
+    if (!(await isDeviceOnline())) {
       await queueOfflineMutation(userId, {
         noteId,
         type: 'update',
         updates: { completed },
       });
+    } else {
+      try {
+        await withTimeout(toggleStatus(noteId, completed));
+      } catch (error) {
+        if (!isRetriableNetworkFailure(error)) throw error;
+        await queueOfflineMutation(userId, {
+          noteId,
+          type: 'update',
+          updates: { completed },
+        });
+      }
     }
     return true;
   } catch (error) {

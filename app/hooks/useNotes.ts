@@ -96,6 +96,12 @@ export function useNotes(userId: string | undefined): UseNotesResult {
   }, [reloadLocalState]);
 
   useEffect(() => {
+    if (!userId) return;
+    const timeout = setTimeout(() => setLoading(false), 2500);
+    return () => clearTimeout(timeout);
+  }, [userId]);
+
+  useEffect(() => {
     return subscribeLocalNotesChanged(() => {
       reloadLocalState().then();
     });

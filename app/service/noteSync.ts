@@ -17,6 +17,7 @@ import {
 } from './firebaseService';
 import { upsertDeadlineReminder } from './notificationService';
 import { isOfflineError } from '../utils/networkErrors';
+import { isDeviceOnline, withTimeout } from '../utils/networkStatus';
 import { Note } from '../screens/types';
 
 async function syncPendingCreates(userId: string): Promise<boolean> {
@@ -25,7 +26,7 @@ async function syncPendingCreates(userId: string): Promise<boolean> {
 
   for (const note of pending) {
     try {
-      await setNote(note.id, noteForWrite(note));
+      await withTimeout(setNote(note.id, noteForWrite(note)));
       await removePendingNote(userId, note.id);
       await upsertDeadlineReminder({
         id: note.id,
@@ -49,11 +50,11 @@ async function syncOfflineMutation(
   mutation: OfflineMutation,
 ): Promise<void> {
   if (mutation.type === 'delete') {
-    await deleteNote(mutation.noteId);
+    await withTimeout(deleteNote(mutation.noteId));
     return;
   }
 
-  await updateNote(mutation.noteId, mutation.updates);
+  await withTimeout(updateNote(mutation.noteId, mutation.updates));
 }
 
 async function syncPendingMutations(userId: string): Promise<boolean> {
@@ -84,6 +85,9 @@ function noteForWrite(note: Note): Omit<Note, 'id'> {
 
 /** Push locally queued notes and edits to Firestore when connectivity is available. */
 export async function syncPendingNotes(userId: string): Promise<void> {
+  if (!(await isDeviceOnline())) {
+    return;
+  }
   const createsOk = await syncPendingCreates(userId);
   if (!createsOk) return;
   await syncPendingMutations(userId);

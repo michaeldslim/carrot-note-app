@@ -20,5 +20,7 @@ export function isOfflineError(error: unknown): boolean {
   }
 
   const message = error instanceof Error ? error.message : String(error);
-  return /network|offline|internet|failed to fetch|connection/i.test(message);
+  return /network|offline|internet|failed to fetch|connection|timed out/i.test(
+    message,
+  );
 }
